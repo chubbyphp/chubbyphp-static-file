@@ -113,7 +113,7 @@ final class StaticFileMiddlewareTest extends TestCase
         /** @var ResponseInterface|MockObject $response */
         $response = $this->getMockByCalls(ResponseInterface::class, [
             Call::create('withHeader')->with('Content-Length', '51')->willReturnSelf(),
-            Call::create('withHeader')->with('Content-Type', 'text/xml')->willReturnSelf(),
+            Call::create('withHeader')->with('Content-Type', 'application/xml')->willReturnSelf(),
             Call::create('withHeader')->with('ETag', $hash)->willReturnSelf(),
             Call::create('withBody')->with($responseBody)->willReturnSelf(),
         ]);

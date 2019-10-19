@@ -173,6 +173,12 @@ final class StaticFileMiddlewareTest extends TestCase
                 'extension' => 'json',
             ],
             [
+                'body' => '<?xml version="1.0" encoding="UTF-8"?><json:string name="key">value</json:string>',
+                'contentLength' => '81',
+                'contentType' => 'application/x-jsonx',
+                'extension' => 'jsonx',
+            ],
+            [
                 'body' => '<?xml version="1.0" encoding="UTF-8"?><key>value</key>',
                 'contentLength' => '54',
                 'contentType' => 'application/xml',

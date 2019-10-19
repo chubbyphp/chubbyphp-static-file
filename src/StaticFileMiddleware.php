@@ -982,8 +982,10 @@ final class StaticFileMiddleware implements MiddlewareInterface
         'xwd' => 'image/x-xwindowdump',
         'xyz' => 'chemical/x-xyz',
         'xz' => 'application/x-xz',
+        'yaml' => 'application/x-yaml',
         'yang' => 'application/yang',
         'yin' => 'application/yin+xml',
+        'yml' => 'application/x-yaml',
         'z1' => 'application/x-zmachine',
         'z2' => 'application/x-zmachine',
         'z3' => 'application/x-zmachine',
@@ -1014,14 +1016,21 @@ final class StaticFileMiddleware implements MiddlewareInterface
      */
     private $publicDirectory;
 
+    /**
+     * @var string
+     */
+    private $hashAlgorithm;
+
     public function __construct(
         ResponseFactoryInterface $responseFactory,
         StreamFactoryInterface $streamFactory,
-        string $publicDirectory
+        string $publicDirectory,
+        string $hashAlgorithm = 'adler32'
     ) {
         $this->responseFactory = $responseFactory;
         $this->streamFactory = $streamFactory;
         $this->publicDirectory = $publicDirectory;
+        $this->hashAlgorithm = $hashAlgorithm;
     }
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
@@ -1032,32 +1041,33 @@ final class StaticFileMiddleware implements MiddlewareInterface
             return $handler->handle($request);
         }
 
-        $hash = hash_file('sha256', $filename);
+        $hash = hash_file($this->hashAlgorithm, $filename);
 
         if ($request->getHeaderLine('If-None-Match') === $hash) {
-            return $this->responseFactory->createResponse(304)
-                ->withHeader('ETag', $hash)
-            ;
+            return $this->createResponse(304, $filename, $hash);
         }
 
-        return $this->createResponse($filename, $hash);
+        return $this->createResponse(200, $filename, $hash)
+            ->withBody($this->streamFactory->createStreamFromFile($filename))
+        ;
     }
 
-    private function createResponse(string $filename, string $hash): ResponseInterface
+    private function createResponse(int $code, string $filename, string $hash): ResponseInterface
     {
-        $response = $this->responseFactory->createResponse(200);
+        $response = $this->responseFactory->createResponse($code);
+        $response = $response->withHeader('Content-Length', (string) filesize($filename));
+        $response = $this->addContentType($response, $filename);
 
-        if ($contentLength = filesize($filename)) {
-            $response = $response->withHeader('Content-Length', (string) $contentLength);
-        }
+        return $response->withHeader('ETag', $hash);
+    }
 
+    private function addContentType(ResponseInterface $response, string $filename): ResponseInterface
+    {
         $extension = pathinfo($filename, PATHINFO_EXTENSION);
         if (isset(self::CONTENT_TYPE_MAPPING[$extension])) {
-            $response = $response->withHeader('Content-Type', self::CONTENT_TYPE_MAPPING[$extension]);
+            return $response->withHeader('Content-Type', self::CONTENT_TYPE_MAPPING[$extension]);
         }
 
-        $response = $response->withHeader('ETag', $hash);
-
-        return $response->withBody($this->streamFactory->createStreamFromFile($filename));
+        return $response;
     }
 }

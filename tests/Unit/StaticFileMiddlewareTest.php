@@ -54,15 +54,19 @@ final class StaticFileMiddlewareTest extends TestCase
         self::assertSame($response, $middleware->process($request, $handler));
     }
 
-    public function testIfMatch(): void
+    /**
+     * @dataProvider provideFiles
+     */
+    public function testIfMatch(string $body, string $contentLength, ?string $contentType, string $extension): void
     {
         $publicDirectory = sys_get_temp_dir();
-        $requestTarget = '/'.uniqid().uniqid().'.xml';
+        $requestTarget = '/'.uniqid().uniqid().'.'.$extension;
         $filename = $publicDirectory.$requestTarget;
+        $hashAlgorithm = 'adler32';
 
-        file_put_contents($filename, '<?xml version="1.0" encoding="UTF-8"?><test></test>');
+        file_put_contents($filename, $body);
 
-        $hash = hash_file('sha256', $filename);
+        $hash = hash_file($hashAlgorithm, $filename);
 
         /** @var ServerRequestInterface|MockObject $request */
         $request = $this->getMockByCalls(ServerRequestInterface::class, [
@@ -70,10 +74,20 @@ final class StaticFileMiddlewareTest extends TestCase
             Call::create('getHeaderLine')->with('If-None-Match')->willReturn($hash),
         ]);
 
-        /** @var ResponseInterface|MockObject $response */
-        $response = $this->getMockByCalls(ResponseInterface::class, [
-            Call::create('withHeader')->with('ETag', $hash)->willReturnSelf(),
-        ]);
+        if (null !== $contentType) {
+            /** @var ResponseInterface|MockObject $response */
+            $response = $this->getMockByCalls(ResponseInterface::class, [
+                Call::create('withHeader')->with('Content-Length', $contentLength)->willReturnSelf(),
+                Call::create('withHeader')->with('Content-Type', $contentType)->willReturnSelf(),
+                Call::create('withHeader')->with('ETag', $hash)->willReturnSelf(),
+            ]);
+        } else {
+            /** @var ResponseInterface|MockObject $response */
+            $response = $this->getMockByCalls(ResponseInterface::class, [
+                Call::create('withHeader')->with('Content-Length', $contentLength)->willReturnSelf(),
+                Call::create('withHeader')->with('ETag', $hash)->willReturnSelf(),
+            ]);
+        }
 
         /** @var RequestHandlerInterface|MockObject $handler */
         $handler = $this->getMockByCalls(RequestHandlerInterface::class);
@@ -86,20 +100,24 @@ final class StaticFileMiddlewareTest extends TestCase
         /** @var StreamFactoryInterface|MockObject $streamFactory */
         $streamFactory = $this->getMockByCalls(StreamFactoryInterface::class);
 
-        $middleware = new StaticFileMiddleware($responseFactory, $streamFactory, $publicDirectory);
+        $middleware = new StaticFileMiddleware($responseFactory, $streamFactory, $publicDirectory, $hashAlgorithm);
 
         self::assertSame($response, $middleware->process($request, $handler));
     }
 
-    public function testIfNotMatch(): void
+    /**
+     * @dataProvider provideFiles
+     */
+    public function testIfNoneMatch(string $body, string $contentLength, ?string $contentType, string $extension): void
     {
         $publicDirectory = sys_get_temp_dir();
-        $requestTarget = '/'.uniqid().uniqid().'.xml';
+        $requestTarget = '/'.uniqid().uniqid().'.'.$extension;
         $filename = $publicDirectory.$requestTarget;
+        $hashAlgorithm = 'adler32';
 
-        file_put_contents($filename, '<?xml version="1.0" encoding="UTF-8"?><test></test>');
+        file_put_contents($filename, $body);
 
-        $hash = hash_file('sha256', $filename);
+        $hash = hash_file($hashAlgorithm, $filename);
 
         /** @var ServerRequestInterface|MockObject $request */
         $request = $this->getMockByCalls(ServerRequestInterface::class, [
@@ -110,13 +128,22 @@ final class StaticFileMiddlewareTest extends TestCase
         /** @var StreamInterface|MockObject $responseBody */
         $responseBody = $this->getMockByCalls(StreamInterface::class);
 
-        /** @var ResponseInterface|MockObject $response */
-        $response = $this->getMockByCalls(ResponseInterface::class, [
-            Call::create('withHeader')->with('Content-Length', '51')->willReturnSelf(),
-            Call::create('withHeader')->with('Content-Type', 'application/xml')->willReturnSelf(),
-            Call::create('withHeader')->with('ETag', $hash)->willReturnSelf(),
-            Call::create('withBody')->with($responseBody)->willReturnSelf(),
-        ]);
+        if (null !== $contentType) {
+            /** @var ResponseInterface|MockObject $response */
+            $response = $this->getMockByCalls(ResponseInterface::class, [
+                Call::create('withHeader')->with('Content-Length', $contentLength)->willReturnSelf(),
+                Call::create('withHeader')->with('Content-Type', $contentType)->willReturnSelf(),
+                Call::create('withHeader')->with('ETag', $hash)->willReturnSelf(),
+                Call::create('withBody')->with($responseBody)->willReturnSelf(),
+            ]);
+        } else {
+            /** @var ResponseInterface|MockObject $response */
+            $response = $this->getMockByCalls(ResponseInterface::class, [
+                Call::create('withHeader')->with('Content-Length', $contentLength)->willReturnSelf(),
+                Call::create('withHeader')->with('ETag', $hash)->willReturnSelf(),
+                Call::create('withBody')->with($responseBody)->willReturnSelf(),
+            ]);
+        }
 
         /** @var RequestHandlerInterface|MockObject $handler */
         $handler = $this->getMockByCalls(RequestHandlerInterface::class);
@@ -131,8 +158,38 @@ final class StaticFileMiddlewareTest extends TestCase
             Call::create('createStreamFromFile')->with($filename, 'r')->willReturn($responseBody),
         ]);
 
-        $middleware = new StaticFileMiddleware($responseFactory, $streamFactory, $publicDirectory);
+        $middleware = new StaticFileMiddleware($responseFactory, $streamFactory, $publicDirectory, $hashAlgorithm);
 
         self::assertSame($response, $middleware->process($request, $handler));
+    }
+
+    public function provideFiles(): array
+    {
+        return [
+            [
+                'body' => '{"key":"value"}',
+                'contentLength' => '15',
+                'contentType' => 'application/json',
+                'extension' => 'json',
+            ],
+            [
+                'body' => '<?xml version="1.0" encoding="UTF-8"?><key>value</key>',
+                'contentLength' => '54',
+                'contentType' => 'application/xml',
+                'extension' => 'xml',
+            ],
+            [
+                'body' => 'key: value',
+                'contentLength' => '10',
+                'contentType' => 'application/x-yaml',
+                'extension' => 'yml',
+            ],
+            [
+                'body' => 'abcdefgh',
+                'contentLength' => '8',
+                'contentType' => null,
+                'extension' => 'xxxxxxxxx',
+            ],
+        ];
     }
 }

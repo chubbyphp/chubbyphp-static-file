@@ -1,7 +1,7 @@
 # chubbyphp-static-file
 
 [![Build Status](https://api.travis-ci.org/chubbyphp/chubbyphp-static-file.png?branch=master)](https://travis-ci.org/chubbyphp/chubbyphp-static-file)
-[![Coverage Status](https://coveralls.io/repos/github/chubbyphp/chubbyphp-static-file/badge.svg?branch=master)](https://coveralls.io/github/chubbyphp/chubbyphp-static-file?branch=chubbyphp-static-file)
+[![Coverage Status](https://coveralls.io/repos/github/chubbyphp/chubbyphp-static-file/badge.svg?branch=master)](https://coveralls.io/github/chubbyphp/chubbyphp-static-file?branch=master)
 [![Total Downloads](https://poser.pugx.org/chubbyphp/chubbyphp-static-file/downloads.png)](https://packagist.org/packages/chubbyphp/chubbyphp-static-file)
 [![Monthly Downloads](https://poser.pugx.org/chubbyphp/chubbyphp-static-file/d/monthly)](https://packagist.org/packages/chubbyphp/chubbyphp-static-file)
 [![Latest Stable Version](https://poser.pugx.org/chubbyphp/chubbyphp-static-file/v/stable.png)](https://packagist.org/packages/chubbyphp/chubbyphp-static-file)

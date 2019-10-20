@@ -374,7 +374,7 @@ final class StaticFileMiddleware implements MiddlewareInterface
         'js' => 'application/javascript',
         'json' => 'application/json',
         'jsonml' => 'application/jsonml+json',
-        'jsonx' => 'application/x-jsonx',
+        'jsonx' => 'application/jsonx+xml',
         'kar' => 'audio/midi',
         'karbon' => 'application/vnd.kde.karbon',
         'kfo' => 'application/vnd.kde.kformula',

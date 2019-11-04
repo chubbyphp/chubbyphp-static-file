@@ -21,16 +21,16 @@
         "psr/http-server-middleware": "^1.0.1"
     },
     "require-dev": {
-        "chubbyphp/chubbyphp-mock": "^1.4",
-        "friendsofphp/php-cs-fixer": "^2.15.3",
-        "infection/infection": "^0.14.1",
+        "chubbyphp/chubbyphp-mock": "^1.4.2",
+        "friendsofphp/php-cs-fixer": "^2.16",
+        "infection/infection": "^0.14.2",
         "mavimo/phpstan-junit": "^0.2.3",
         "nunomaduro/phpinsights": "^1.9",
         "php-coveralls/php-coveralls": "^2.1",
         "phploc/phploc": "^5.0",
-        "phpstan/extension-installer": "^1.0.1",
-        "phpstan/phpstan": "^0.11.16",
-        "phpunit/phpunit": "^8.4.1"
+        "phpstan/extension-installer": "^1.0.3",
+        "phpstan/phpstan": "^0.11.19",
+        "phpunit/phpunit": "^8.4.2"
     },
     "autoload": {
         "psr-4": { "Chubbyphp\\StaticFile\\": "src/" }

@@ -1026,7 +1026,7 @@ final class StaticFileMiddleware implements MiddlewareInterface
         ResponseFactoryInterface $responseFactory,
         StreamFactoryInterface $streamFactory,
         string $publicDirectory,
-        string $hashAlgorithm = 'adler32'
+        string $hashAlgorithm = 'md5'
     ) {
         $this->responseFactory = $responseFactory;
         $this->streamFactory = $streamFactory;

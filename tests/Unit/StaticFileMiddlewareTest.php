@@ -108,6 +108,60 @@ final class StaticFileMiddlewareTest extends TestCase
     /**
      * @dataProvider provideFiles
      */
+    public function testIfMatchWithDefaultHashAlgorithm(
+        string $body,
+        string $contentLength,
+        ?string $contentType,
+        string $extension
+    ): void {
+        $publicDirectory = sys_get_temp_dir();
+        $requestTarget = '/'.uniqid().uniqid().'.'.$extension;
+        $filename = $publicDirectory.$requestTarget;
+
+        file_put_contents($filename, $body);
+
+        $hash = hash_file('md5', $filename);
+
+        /** @var ServerRequestInterface|MockObject $request */
+        $request = $this->getMockByCalls(ServerRequestInterface::class, [
+            Call::create('getRequestTarget')->with()->willReturn($requestTarget),
+            Call::create('getHeaderLine')->with('If-None-Match')->willReturn($hash),
+        ]);
+
+        if (null !== $contentType) {
+            /** @var ResponseInterface|MockObject $response */
+            $response = $this->getMockByCalls(ResponseInterface::class, [
+                Call::create('withHeader')->with('Content-Length', $contentLength)->willReturnSelf(),
+                Call::create('withHeader')->with('Content-Type', $contentType)->willReturnSelf(),
+                Call::create('withHeader')->with('ETag', $hash)->willReturnSelf(),
+            ]);
+        } else {
+            /** @var ResponseInterface|MockObject $response */
+            $response = $this->getMockByCalls(ResponseInterface::class, [
+                Call::create('withHeader')->with('Content-Length', $contentLength)->willReturnSelf(),
+                Call::create('withHeader')->with('ETag', $hash)->willReturnSelf(),
+            ]);
+        }
+
+        /** @var RequestHandlerInterface|MockObject $handler */
+        $handler = $this->getMockByCalls(RequestHandlerInterface::class);
+
+        /** @var ResponseFactoryInterface|MockObject $responseFactory */
+        $responseFactory = $this->getMockByCalls(ResponseFactoryInterface::class, [
+            Call::create('createResponse')->with(304, '')->willReturn($response),
+        ]);
+
+        /** @var StreamFactoryInterface|MockObject $streamFactory */
+        $streamFactory = $this->getMockByCalls(StreamFactoryInterface::class);
+
+        $middleware = new StaticFileMiddleware($responseFactory, $streamFactory, $publicDirectory);
+
+        self::assertSame($response, $middleware->process($request, $handler));
+    }
+
+    /**
+     * @dataProvider provideFiles
+     */
     public function testIfNoneMatch(string $body, string $contentLength, ?string $contentType, string $extension): void
     {
         $publicDirectory = sys_get_temp_dir();

@@ -1042,7 +1042,9 @@ final class StaticFileMiddleware implements MiddlewareInterface
             return $handler->handle($request);
         }
 
-        $hash = hash_file($this->hashAlgorithm, $filename);
+        if (false === $hash = @hash_file($this->hashAlgorithm, $filename)) {
+            throw new \LogicException(sprintf('Invalid or not supported hash algorithm: "%s"', $this->hashAlgorithm));
+        }
 
         if ($request->getHeaderLine('If-None-Match') === $hash) {
             return $this->createResponse(304, $filename, $hash);

@@ -23,6 +23,10 @@ A minimal static file middleware for PSR 15.
 
 Through [Composer](http://getcomposer.org) as [chubbyphp/chubbyphp-static-file][1].
 
+```sh
+composer require chubbyphp/chubbyphp-static-file "^1.0"
+```
+
 ## Usage
 
 ```php

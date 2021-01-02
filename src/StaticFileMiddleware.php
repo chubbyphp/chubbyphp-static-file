@@ -1002,25 +1002,13 @@ final class StaticFileMiddleware implements MiddlewareInterface
         'zmm' => 'application/vnd.handheld-entertainment+xml',
     ];
 
-    /**
-     * @var ResponseFactoryInterface
-     */
-    private $responseFactory;
+    private ResponseFactoryInterface $responseFactory;
 
-    /**
-     * @var StreamFactoryInterface
-     */
-    private $streamFactory;
+    private StreamFactoryInterface $streamFactory;
 
-    /**
-     * @var string
-     */
-    private $publicDirectory;
+    private string $publicDirectory;
 
-    /**
-     * @var string
-     */
-    private $hashAlgorithm;
+    private string $hashAlgorithm;
 
     public function __construct(
         ResponseFactoryInterface $responseFactory,

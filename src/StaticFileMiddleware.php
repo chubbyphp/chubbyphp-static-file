@@ -1016,6 +1016,10 @@ final class StaticFileMiddleware implements MiddlewareInterface
         string $publicDirectory,
         string $hashAlgorithm = 'md5'
     ) {
+        if (!in_array($hashAlgorithm, hash_algos(), true)) {
+            throw new \LogicException(sprintf('Invalid or not supported hash algorithm: "%s"', $hashAlgorithm));
+        }
+
         $this->responseFactory = $responseFactory;
         $this->streamFactory = $streamFactory;
         $this->publicDirectory = $publicDirectory;
@@ -1030,9 +1034,7 @@ final class StaticFileMiddleware implements MiddlewareInterface
             return $handler->handle($request);
         }
 
-        if (false === $hash = @hash_file($this->hashAlgorithm, $filename)) {
-            throw new \LogicException(sprintf('Invalid or not supported hash algorithm: "%s"', $this->hashAlgorithm));
-        }
+        $hash = hash_file($this->hashAlgorithm, $filename);
 
         if ($request->getHeaderLine('If-None-Match') === $hash) {
             return $this->createResponse(304, $filename, $hash);

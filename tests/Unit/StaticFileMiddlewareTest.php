@@ -60,22 +60,7 @@ final class StaticFileMiddlewareTest extends TestCase
         $this->expectExceptionMessage('Invalid or not supported hash algorithm: "unknown"');
 
         $publicDirectory = sys_get_temp_dir();
-        $requestTarget = '/'.uniqid().uniqid().'.xml';
-        $filename = $publicDirectory.$requestTarget;
         $hashAlgorithm = 'unknown';
-
-        file_put_contents($filename, 'test');
-
-        /** @var ServerRequestInterface|MockObject $request */
-        $request = $this->getMockByCalls(ServerRequestInterface::class, [
-            Call::create('getRequestTarget')->with()->willReturn($requestTarget),
-        ]);
-
-        /** @var ResponseInterface|MockObject $response */
-        $response = $this->getMockByCalls(ResponseInterface::class);
-
-        /** @var RequestHandlerInterface|MockObject $handler */
-        $handler = $this->getMockByCalls(RequestHandlerInterface::class);
 
         /** @var ResponseFactoryInterface|MockObject $responseFactory */
         $responseFactory = $this->getMockByCalls(ResponseFactoryInterface::class);
@@ -83,9 +68,7 @@ final class StaticFileMiddlewareTest extends TestCase
         /** @var StreamFactoryInterface|MockObject $streamFactory */
         $streamFactory = $this->getMockByCalls(StreamFactoryInterface::class);
 
-        $middleware = new StaticFileMiddleware($responseFactory, $streamFactory, $publicDirectory, $hashAlgorithm);
-
-        self::assertSame($response, $middleware->process($request, $handler));
+        new StaticFileMiddleware($responseFactory, $streamFactory, $publicDirectory, $hashAlgorithm);
     }
 
     /**

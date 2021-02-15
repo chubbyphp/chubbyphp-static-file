@@ -1,8 +1,8 @@
 # chubbyphp-static-file
 
-[![Build Status](https://api.travis-ci.org/chubbyphp/chubbyphp-static-file.png?branch=master)](https://travis-ci.org/chubbyphp/chubbyphp-static-file)
+[![CI](https://github.com/chubbyphp/chubbyphp-static-file/workflows/CI/badge.svg?branch=master)](https://github.com/chubbyphp/chubbyphp-static-file/actions?query=workflow%3ACI)
 [![Coverage Status](https://coveralls.io/repos/github/chubbyphp/chubbyphp-static-file/badge.svg?branch=master)](https://coveralls.io/github/chubbyphp/chubbyphp-static-file?branch=master)
-[![Infection MSI](https://badge.stryker-mutator.io/github.com/chubbyphp/chubbyphp-static-file/master)](https://travis-ci.org/chubbyphp/chubbyphp-static-file)
+[![Infection MSI](https://badge.stryker-mutator.io/github.com/chubbyphp/chubbyphp-static-file/master)](https://dashboard.stryker-mutator.io/reports/github.com/chubbyphp/chubbyphp-static-file/master)
 [![Latest Stable Version](https://poser.pugx.org/chubbyphp/chubbyphp-static-file/v/stable.png)](https://packagist.org/packages/chubbyphp/chubbyphp-static-file)
 [![Total Downloads](https://poser.pugx.org/chubbyphp/chubbyphp-static-file/downloads.png)](https://packagist.org/packages/chubbyphp/chubbyphp-static-file)
 [![Monthly Downloads](https://poser.pugx.org/chubbyphp/chubbyphp-static-file/d/monthly)](https://packagist.org/packages/chubbyphp/chubbyphp-static-file)

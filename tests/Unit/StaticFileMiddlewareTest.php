@@ -234,7 +234,7 @@ final class StaticFileMiddlewareTest extends TestCase
         self::assertSame($response, $middleware->process($request, $handler));
     }
 
-    public function testBaseDirectory()
+    public function testBaseDirectory(): void
     {
         $publicDirectory = sys_get_temp_dir();
         $requestTarget = '/';

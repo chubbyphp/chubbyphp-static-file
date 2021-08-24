@@ -234,6 +234,35 @@ final class StaticFileMiddlewareTest extends TestCase
         self::assertSame($response, $middleware->process($request, $handler));
     }
 
+    public function testBaseDirectory()
+    {
+        $publicDirectory = sys_get_temp_dir();
+        $requestTarget = '/';
+
+        /** @var ServerRequestInterface|MockObject $request */
+        $request = $this->getMockByCalls(ServerRequestInterface::class, [
+            Call::create('getRequestTarget')->with()->willReturn($requestTarget),
+        ]);
+
+        /** @var ResponseInterface|MockObject $response */
+        $response = $this->getMockByCalls(ResponseInterface::class);
+
+        /** @var RequestHandlerInterface|MockObject $handler */
+        $handler = $this->getMockByCalls(RequestHandlerInterface::class, [
+            Call::create('handle')->with($request)->willReturn($response),
+        ]);
+
+        /** @var ResponseFactoryInterface|MockObject $responseFactory */
+        $responseFactory = $this->getMockByCalls(ResponseFactoryInterface::class);
+
+        /** @var StreamFactoryInterface|MockObject $streamFactory */
+        $streamFactory = $this->getMockByCalls(StreamFactoryInterface::class);
+
+        $middleware = new StaticFileMiddleware($responseFactory, $streamFactory, $publicDirectory);
+
+        self::assertSame($response, $middleware->process($request, $handler));
+    }
+
     public function provideFiles(): array
     {
         return [

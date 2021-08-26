@@ -1030,7 +1030,7 @@ final class StaticFileMiddleware implements MiddlewareInterface
     {
         $filename = $this->publicDirectory.$request->getRequestTarget();
 
-        if (!is_readable($filename)) {
+        if (!is_readable($filename) || is_dir($filename)) {
             return $handler->handle($request);
         }
 

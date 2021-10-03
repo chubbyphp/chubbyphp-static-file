@@ -1016,7 +1016,7 @@ final class StaticFileMiddleware implements MiddlewareInterface
         string $publicDirectory,
         string $hashAlgorithm = 'md5'
     ) {
-        if (!in_array($hashAlgorithm, hash_algos(), true)) {
+        if (!\in_array($hashAlgorithm, hash_algos(), true)) {
             throw new \LogicException(sprintf('Invalid or not supported hash algorithm: "%s"', $hashAlgorithm));
         }
 

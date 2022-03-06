@@ -26,7 +26,7 @@ A minimal static file middleware for PSR 15.
 
 ## Requirements
 
- * php: ^7.4|^8.0
+ * php: ^8.0
  * [psr/http-factory][2]: ^1.0.1
  * [psr/http-message][3]: ^1.0.1
  * [psr/http-server-handler][4]: ^1.0.1
@@ -37,7 +37,7 @@ A minimal static file middleware for PSR 15.
 Through [Composer](http://getcomposer.org) as [chubbyphp/chubbyphp-static-file][1].
 
 ```sh
-composer require chubbyphp/chubbyphp-static-file "^1.1"
+composer require chubbyphp/chubbyphp-static-file "^1.2"
 ```
 
 ## Usage
@@ -72,7 +72,7 @@ $app->add(new StaticFileMiddleware(
 
 ## Copyright
 
-Dominik Zogg 2021
+Dominik Zogg 2022
 
 [1]: https://packagist.org/packages/chubbyphp/chubbyphp-static-file
 

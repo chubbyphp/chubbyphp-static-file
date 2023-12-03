@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/chubbyphp/chubbyphp-static-file/workflows/CI/badge.svg?branch=master)](https://github.com/chubbyphp/chubbyphp-static-file/actions?query=workflow%3ACI)
 [![Coverage Status](https://coveralls.io/repos/github/chubbyphp/chubbyphp-static-file/badge.svg?branch=master)](https://coveralls.io/github/chubbyphp/chubbyphp-static-file?branch=master)
-[![Infection MSI](https://badge.stryker-mutator.io/github.com/chubbyphp/chubbyphp-static-file/master)](https://dashboard.stryker-mutator.io/reports/github.com/chubbyphp/chubbyphp-static-file/master)
+[![Mutation testing badge](https://img.shields.io/endpoint?style=flat&url=https%3A%2F%2Fbadge-api.stryker-mutator.io%2Fgithub.com%2Fchubbyphp%2Fchubbyphp-static-file%2Fmaster)](https://dashboard.stryker-mutator.io/reports/github.com/chubbyphp/chubbyphp-static-file/master)[![Latest Stable Version](https://poser.pugx.org/chubbyphp/chubbyphp-static-file/v/stable.png)](https://packagist.org/packages/chubbyphp/chubbyphp-static-file)
 [![Latest Stable Version](https://poser.pugx.org/chubbyphp/chubbyphp-static-file/v/stable.png)](https://packagist.org/packages/chubbyphp/chubbyphp-static-file)
 [![Total Downloads](https://poser.pugx.org/chubbyphp/chubbyphp-static-file/downloads.png)](https://packagist.org/packages/chubbyphp/chubbyphp-static-file)
 [![Monthly Downloads](https://poser.pugx.org/chubbyphp/chubbyphp-static-file/d/monthly)](https://packagist.org/packages/chubbyphp/chubbyphp-static-file)
@@ -26,18 +26,18 @@ A minimal static file middleware for PSR 15.
 
 ## Requirements
 
- * php: ^8.0
- * [psr/http-factory][2]: ^1.0.1
- * [psr/http-message][3]: ^1.0.1
- * [psr/http-server-handler][4]: ^1.0.1
- * [psr/http-server-middleware][5]: ^1.0.1
+ * php: ^8.1
+ * [psr/http-factory][2]: ^1.0.2
+ * [psr/http-message][3]: ^1.1|^2.0
+ * [psr/http-server-handler][4]: ^1.0.2
+ * [psr/http-server-middleware][5]: ^1.0.2
 
 ## Installation
 
 Through [Composer](http://getcomposer.org) as [chubbyphp/chubbyphp-static-file][1].
 
 ```sh
-composer require chubbyphp/chubbyphp-static-file "^1.2"
+composer require chubbyphp/chubbyphp-static-file "^1.3"
 ```
 
 ## Usage

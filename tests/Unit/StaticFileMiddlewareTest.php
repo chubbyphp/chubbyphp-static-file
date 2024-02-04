@@ -263,7 +263,7 @@ final class StaticFileMiddlewareTest extends TestCase
         self::assertSame($response, $middleware->process($request, $handler));
     }
 
-    public function provideFiles(): iterable
+    public static function provideFiles(): iterable
     {
         return [
             [

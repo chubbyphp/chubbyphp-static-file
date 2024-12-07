@@ -31,7 +31,7 @@ final class StaticFileMiddleware implements MiddlewareInterface
         ?array $mimetypes = null,
     ) {
         if (!\in_array($hashAlgorithm, hash_algos(), true)) {
-            throw new \LogicException(sprintf('Invalid or not supported hash algorithm: "%s"', $hashAlgorithm));
+            throw new \LogicException(\sprintf('Invalid or not supported hash algorithm: "%s"', $hashAlgorithm));
         }
         $this->hashAlgorithm = $hashAlgorithm;
         $this->mimetypes = $mimetypes ?? (array) require __DIR__.'/mimetypes.php';

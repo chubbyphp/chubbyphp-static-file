@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Chubbyphp\Tests\Unit\StaticFile;
 
-use Chubbyphp\Mock\Call;
-use Chubbyphp\Mock\MockByCallsTrait;
+use Chubbyphp\Mock\MockMethod\WithReturn;
+use Chubbyphp\Mock\MockMethod\WithReturnSelf;
+use Chubbyphp\Mock\MockObjectBuilder;
 use Chubbyphp\StaticFile\StaticFileMiddleware;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -23,31 +23,31 @@ use Psr\Http\Server\RequestHandlerInterface;
  */
 final class StaticFileMiddlewareTest extends TestCase
 {
-    use MockByCallsTrait;
-
     public function testIsNotReadable(): void
     {
         $publicDirectory = sys_get_temp_dir();
         $requestTarget = '/'.uniqid().uniqid().'.xml';
 
-        /** @var MockObject|ServerRequestInterface $request */
-        $request = $this->getMockByCalls(ServerRequestInterface::class, [
-            Call::create('getRequestTarget')->with()->willReturn($requestTarget),
+        $builder = new MockObjectBuilder();
+
+        /** @var ServerRequestInterface $request */
+        $request = $builder->create(ServerRequestInterface::class, [
+            new WithReturn('getRequestTarget', [], $requestTarget),
         ]);
 
-        /** @var MockObject|ResponseInterface $response */
-        $response = $this->getMockByCalls(ResponseInterface::class);
+        /** @var ResponseInterface $response */
+        $response = $builder->create(ResponseInterface::class, []);
 
-        /** @var MockObject|RequestHandlerInterface $handler */
-        $handler = $this->getMockByCalls(RequestHandlerInterface::class, [
-            Call::create('handle')->with($request)->willReturn($response),
+        /** @var RequestHandlerInterface $handler */
+        $handler = $builder->create(RequestHandlerInterface::class, [
+            new WithReturn('handle', [$request], $response),
         ]);
 
-        /** @var MockObject|ResponseFactoryInterface $responseFactory */
-        $responseFactory = $this->getMockByCalls(ResponseFactoryInterface::class);
+        /** @var ResponseFactoryInterface $responseFactory */
+        $responseFactory = $builder->create(ResponseFactoryInterface::class, []);
 
-        /** @var MockObject|StreamFactoryInterface $streamFactory */
-        $streamFactory = $this->getMockByCalls(StreamFactoryInterface::class);
+        /** @var StreamFactoryInterface $streamFactory */
+        $streamFactory = $builder->create(StreamFactoryInterface::class, []);
 
         $middleware = new StaticFileMiddleware($responseFactory, $streamFactory, $publicDirectory);
 
@@ -62,11 +62,13 @@ final class StaticFileMiddlewareTest extends TestCase
         $publicDirectory = sys_get_temp_dir();
         $hashAlgorithm = 'unknown';
 
-        /** @var MockObject|ResponseFactoryInterface $responseFactory */
-        $responseFactory = $this->getMockByCalls(ResponseFactoryInterface::class);
+        $builder = new MockObjectBuilder();
 
-        /** @var MockObject|StreamFactoryInterface $streamFactory */
-        $streamFactory = $this->getMockByCalls(StreamFactoryInterface::class);
+        /** @var ResponseFactoryInterface $responseFactory */
+        $responseFactory = $builder->create(ResponseFactoryInterface::class, []);
+
+        /** @var StreamFactoryInterface $streamFactory */
+        $streamFactory = $builder->create(StreamFactoryInterface::class, []);
 
         new StaticFileMiddleware($responseFactory, $streamFactory, $publicDirectory, $hashAlgorithm);
     }
@@ -85,37 +87,39 @@ final class StaticFileMiddlewareTest extends TestCase
 
         $hash = hash_file($hashAlgorithm, $filename);
 
-        /** @var MockObject|ServerRequestInterface $request */
-        $request = $this->getMockByCalls(ServerRequestInterface::class, [
-            Call::create('getRequestTarget')->with()->willReturn($requestTarget),
-            Call::create('getHeaderLine')->with('If-None-Match')->willReturn($hash),
+        $builder = new MockObjectBuilder();
+
+        /** @var ServerRequestInterface $request */
+        $request = $builder->create(ServerRequestInterface::class, [
+            new WithReturn('getRequestTarget', [], $requestTarget),
+            new WithReturn('getHeaderLine', ['If-None-Match'], $hash),
         ]);
 
         if (null !== $contentType) {
-            /** @var MockObject|ResponseInterface $response */
-            $response = $this->getMockByCalls(ResponseInterface::class, [
-                Call::create('withHeader')->with('Content-Length', $contentLength)->willReturnSelf(),
-                Call::create('withHeader')->with('Content-Type', $contentType)->willReturnSelf(),
-                Call::create('withHeader')->with('ETag', $hash)->willReturnSelf(),
+            /** @var ResponseInterface $response */
+            $response = $builder->create(ResponseInterface::class, [
+                new WithReturnSelf('withHeader', ['Content-Length', $contentLength]),
+                new WithReturnSelf('withHeader', ['Content-Type', $contentType]),
+                new WithReturnSelf('withHeader', ['ETag', $hash]),
             ]);
         } else {
-            /** @var MockObject|ResponseInterface $response */
-            $response = $this->getMockByCalls(ResponseInterface::class, [
-                Call::create('withHeader')->with('Content-Length', $contentLength)->willReturnSelf(),
-                Call::create('withHeader')->with('ETag', $hash)->willReturnSelf(),
+            /** @var ResponseInterface $response */
+            $response = $builder->create(ResponseInterface::class, [
+                new WithReturnSelf('withHeader', ['Content-Length', $contentLength]),
+                new WithReturnSelf('withHeader', ['ETag', $hash]),
             ]);
         }
 
-        /** @var MockObject|RequestHandlerInterface $handler */
-        $handler = $this->getMockByCalls(RequestHandlerInterface::class);
+        /** @var RequestHandlerInterface $handler */
+        $handler = $builder->create(RequestHandlerInterface::class, []);
 
-        /** @var MockObject|ResponseFactoryInterface $responseFactory */
-        $responseFactory = $this->getMockByCalls(ResponseFactoryInterface::class, [
-            Call::create('createResponse')->with(304, '')->willReturn($response),
+        /** @var ResponseFactoryInterface $responseFactory */
+        $responseFactory = $builder->create(ResponseFactoryInterface::class, [
+            new WithReturn('createResponse', [304, ''], $response),
         ]);
 
-        /** @var MockObject|StreamFactoryInterface $streamFactory */
-        $streamFactory = $this->getMockByCalls(StreamFactoryInterface::class);
+        /** @var StreamFactoryInterface $streamFactory */
+        $streamFactory = $builder->create(StreamFactoryInterface::class, []);
 
         $middleware = new StaticFileMiddleware($responseFactory, $streamFactory, $publicDirectory, $hashAlgorithm);
 
@@ -139,37 +143,39 @@ final class StaticFileMiddlewareTest extends TestCase
 
         $hash = hash_file('md5', $filename);
 
-        /** @var MockObject|ServerRequestInterface $request */
-        $request = $this->getMockByCalls(ServerRequestInterface::class, [
-            Call::create('getRequestTarget')->with()->willReturn($requestTarget),
-            Call::create('getHeaderLine')->with('If-None-Match')->willReturn($hash),
+        $builder = new MockObjectBuilder();
+
+        /** @var ServerRequestInterface $request */
+        $request = $builder->create(ServerRequestInterface::class, [
+            new WithReturn('getRequestTarget', [], $requestTarget),
+            new WithReturn('getHeaderLine', ['If-None-Match'], $hash),
         ]);
 
         if (null !== $contentType) {
-            /** @var MockObject|ResponseInterface $response */
-            $response = $this->getMockByCalls(ResponseInterface::class, [
-                Call::create('withHeader')->with('Content-Length', $contentLength)->willReturnSelf(),
-                Call::create('withHeader')->with('Content-Type', $contentType)->willReturnSelf(),
-                Call::create('withHeader')->with('ETag', $hash)->willReturnSelf(),
+            /** @var ResponseInterface $response */
+            $response = $builder->create(ResponseInterface::class, [
+                new WithReturnSelf('withHeader', ['Content-Length', $contentLength]),
+                new WithReturnSelf('withHeader', ['Content-Type', $contentType]),
+                new WithReturnSelf('withHeader', ['ETag', $hash]),
             ]);
         } else {
-            /** @var MockObject|ResponseInterface $response */
-            $response = $this->getMockByCalls(ResponseInterface::class, [
-                Call::create('withHeader')->with('Content-Length', $contentLength)->willReturnSelf(),
-                Call::create('withHeader')->with('ETag', $hash)->willReturnSelf(),
+            /** @var ResponseInterface $response */
+            $response = $builder->create(ResponseInterface::class, [
+                new WithReturnSelf('withHeader', ['Content-Length', $contentLength]),
+                new WithReturnSelf('withHeader', ['ETag', $hash]),
             ]);
         }
 
-        /** @var MockObject|RequestHandlerInterface $handler */
-        $handler = $this->getMockByCalls(RequestHandlerInterface::class);
+        /** @var RequestHandlerInterface $handler */
+        $handler = $builder->create(RequestHandlerInterface::class, []);
 
-        /** @var MockObject|ResponseFactoryInterface $responseFactory */
-        $responseFactory = $this->getMockByCalls(ResponseFactoryInterface::class, [
-            Call::create('createResponse')->with(304, '')->willReturn($response),
+        /** @var ResponseFactoryInterface $responseFactory */
+        $responseFactory = $builder->create(ResponseFactoryInterface::class, [
+            new WithReturn('createResponse', [304, ''], $response),
         ]);
 
-        /** @var MockObject|StreamFactoryInterface $streamFactory */
-        $streamFactory = $this->getMockByCalls(StreamFactoryInterface::class);
+        /** @var StreamFactoryInterface $streamFactory */
+        $streamFactory = $builder->create(StreamFactoryInterface::class, []);
 
         $middleware = new StaticFileMiddleware($responseFactory, $streamFactory, $publicDirectory);
 
@@ -190,43 +196,45 @@ final class StaticFileMiddlewareTest extends TestCase
 
         $hash = hash_file($hashAlgorithm, $filename);
 
-        /** @var MockObject|ServerRequestInterface $request */
-        $request = $this->getMockByCalls(ServerRequestInterface::class, [
-            Call::create('getRequestTarget')->with()->willReturn($requestTarget),
-            Call::create('getHeaderLine')->with('If-None-Match')->willReturn(''),
+        $builder = new MockObjectBuilder();
+
+        /** @var ServerRequestInterface $request */
+        $request = $builder->create(ServerRequestInterface::class, [
+            new WithReturn('getRequestTarget', [], $requestTarget),
+            new WithReturn('getHeaderLine', ['If-None-Match'], ''),
         ]);
 
-        /** @var MockObject|StreamInterface $responseBody */
-        $responseBody = $this->getMockByCalls(StreamInterface::class);
+        /** @var StreamInterface $responseBody */
+        $responseBody = $builder->create(StreamInterface::class, []);
 
         if (null !== $contentType) {
-            /** @var MockObject|ResponseInterface $response */
-            $response = $this->getMockByCalls(ResponseInterface::class, [
-                Call::create('withHeader')->with('Content-Length', $contentLength)->willReturnSelf(),
-                Call::create('withHeader')->with('Content-Type', $contentType)->willReturnSelf(),
-                Call::create('withHeader')->with('ETag', $hash)->willReturnSelf(),
-                Call::create('withBody')->with($responseBody)->willReturnSelf(),
+            /** @var ResponseInterface $response */
+            $response = $builder->create(ResponseInterface::class, [
+                new WithReturnSelf('withHeader', ['Content-Length', $contentLength]),
+                new WithReturnSelf('withHeader', ['Content-Type', $contentType]),
+                new WithReturnSelf('withHeader', ['ETag', $hash]),
+                new WithReturnSelf('withBody', [$responseBody]),
             ]);
         } else {
-            /** @var MockObject|ResponseInterface $response */
-            $response = $this->getMockByCalls(ResponseInterface::class, [
-                Call::create('withHeader')->with('Content-Length', $contentLength)->willReturnSelf(),
-                Call::create('withHeader')->with('ETag', $hash)->willReturnSelf(),
-                Call::create('withBody')->with($responseBody)->willReturnSelf(),
+            /** @var ResponseInterface $response */
+            $response = $builder->create(ResponseInterface::class, [
+                new WithReturnSelf('withHeader', ['Content-Length', $contentLength]),
+                new WithReturnSelf('withHeader', ['ETag', $hash]),
+                new WithReturnSelf('withBody', [$responseBody]),
             ]);
         }
 
-        /** @var MockObject|RequestHandlerInterface $handler */
-        $handler = $this->getMockByCalls(RequestHandlerInterface::class);
+        /** @var RequestHandlerInterface $handler */
+        $handler = $builder->create(RequestHandlerInterface::class, []);
 
-        /** @var MockObject|ResponseFactoryInterface $responseFactory */
-        $responseFactory = $this->getMockByCalls(ResponseFactoryInterface::class, [
-            Call::create('createResponse')->with(200, '')->willReturn($response),
+        /** @var ResponseFactoryInterface $responseFactory */
+        $responseFactory = $builder->create(ResponseFactoryInterface::class, [
+            new WithReturn('createResponse', [200, ''], $response),
         ]);
 
-        /** @var MockObject|StreamFactoryInterface $streamFactory */
-        $streamFactory = $this->getMockByCalls(StreamFactoryInterface::class, [
-            Call::create('createStreamFromFile')->with($filename, 'r')->willReturn($responseBody),
+        /** @var StreamFactoryInterface $streamFactory */
+        $streamFactory = $builder->create(StreamFactoryInterface::class, [
+            new WithReturn('createStreamFromFile', [$filename, 'r'], $responseBody),
         ]);
 
         $middleware = new StaticFileMiddleware($responseFactory, $streamFactory, $publicDirectory, $hashAlgorithm);
@@ -239,24 +247,26 @@ final class StaticFileMiddlewareTest extends TestCase
         $publicDirectory = sys_get_temp_dir();
         $requestTarget = '/';
 
-        /** @var MockObject|ServerRequestInterface $request */
-        $request = $this->getMockByCalls(ServerRequestInterface::class, [
-            Call::create('getRequestTarget')->with()->willReturn($requestTarget),
+        $builder = new MockObjectBuilder();
+
+        /** @var ServerRequestInterface $request */
+        $request = $builder->create(ServerRequestInterface::class, [
+            new WithReturn('getRequestTarget', [], $requestTarget),
         ]);
 
-        /** @var MockObject|ResponseInterface $response */
-        $response = $this->getMockByCalls(ResponseInterface::class);
+        /** @var ResponseInterface $response */
+        $response = $builder->create(ResponseInterface::class, []);
 
-        /** @var MockObject|RequestHandlerInterface $handler */
-        $handler = $this->getMockByCalls(RequestHandlerInterface::class, [
-            Call::create('handle')->with($request)->willReturn($response),
+        /** @var RequestHandlerInterface $handler */
+        $handler = $builder->create(RequestHandlerInterface::class, [
+            new WithReturn('handle', [$request], $response),
         ]);
 
-        /** @var MockObject|ResponseFactoryInterface $responseFactory */
-        $responseFactory = $this->getMockByCalls(ResponseFactoryInterface::class);
+        /** @var ResponseFactoryInterface $responseFactory */
+        $responseFactory = $builder->create(ResponseFactoryInterface::class, []);
 
-        /** @var MockObject|StreamFactoryInterface $streamFactory */
-        $streamFactory = $this->getMockByCalls(StreamFactoryInterface::class);
+        /** @var StreamFactoryInterface $streamFactory */
+        $streamFactory = $builder->create(StreamFactoryInterface::class, []);
 
         $middleware = new StaticFileMiddleware($responseFactory, $streamFactory, $publicDirectory);
 

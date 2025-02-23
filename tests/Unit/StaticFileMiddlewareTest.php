@@ -242,37 +242,6 @@ final class StaticFileMiddlewareTest extends TestCase
         self::assertSame($response, $middleware->process($request, $handler));
     }
 
-    public function testBaseDirectory(): void
-    {
-        $publicDirectory = sys_get_temp_dir();
-        $requestTarget = '/';
-
-        $builder = new MockObjectBuilder();
-
-        /** @var ServerRequestInterface $request */
-        $request = $builder->create(ServerRequestInterface::class, [
-            new WithReturn('getRequestTarget', [], $requestTarget),
-        ]);
-
-        /** @var ResponseInterface $response */
-        $response = $builder->create(ResponseInterface::class, []);
-
-        /** @var RequestHandlerInterface $handler */
-        $handler = $builder->create(RequestHandlerInterface::class, [
-            new WithReturn('handle', [$request], $response),
-        ]);
-
-        /** @var ResponseFactoryInterface $responseFactory */
-        $responseFactory = $builder->create(ResponseFactoryInterface::class, []);
-
-        /** @var StreamFactoryInterface $streamFactory */
-        $streamFactory = $builder->create(StreamFactoryInterface::class, []);
-
-        $middleware = new StaticFileMiddleware($responseFactory, $streamFactory, $publicDirectory);
-
-        self::assertSame($response, $middleware->process($request, $handler));
-    }
-
     public static function provideFiles(): iterable
     {
         return [
@@ -307,5 +276,36 @@ final class StaticFileMiddlewareTest extends TestCase
                 'extension' => 'xxxxxxxxx',
             ],
         ];
+    }
+
+    public function testBaseDirectory(): void
+    {
+        $publicDirectory = sys_get_temp_dir();
+        $requestTarget = '/';
+
+        $builder = new MockObjectBuilder();
+
+        /** @var ServerRequestInterface $request */
+        $request = $builder->create(ServerRequestInterface::class, [
+            new WithReturn('getRequestTarget', [], $requestTarget),
+        ]);
+
+        /** @var ResponseInterface $response */
+        $response = $builder->create(ResponseInterface::class, []);
+
+        /** @var RequestHandlerInterface $handler */
+        $handler = $builder->create(RequestHandlerInterface::class, [
+            new WithReturn('handle', [$request], $response),
+        ]);
+
+        /** @var ResponseFactoryInterface $responseFactory */
+        $responseFactory = $builder->create(ResponseFactoryInterface::class, []);
+
+        /** @var StreamFactoryInterface $streamFactory */
+        $streamFactory = $builder->create(StreamFactoryInterface::class, []);
+
+        $middleware = new StaticFileMiddleware($responseFactory, $streamFactory, $publicDirectory);
+
+        self::assertSame($response, $middleware->process($request, $handler));
     }
 }

@@ -8,6 +8,7 @@ use Chubbyphp\Mock\MockMethod\WithReturn;
 use Chubbyphp\Mock\MockMethod\WithReturnSelf;
 use Chubbyphp\Mock\MockObjectBuilder;
 use Chubbyphp\StaticFile\StaticFileMiddleware;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -54,7 +55,7 @@ final class StaticFileMiddlewareTest extends TestCase
         self::assertSame($response, $middleware->process($request, $handler));
     }
 
-    public function testInvalidHashAlgorythm(): void
+    public function testInvalidHashAlgorithm(): void
     {
         $this->expectException(\LogicException::class);
         $this->expectExceptionMessage('Invalid or not supported hash algorithm: "unknown"');
@@ -73,9 +74,7 @@ final class StaticFileMiddlewareTest extends TestCase
         new StaticFileMiddleware($responseFactory, $streamFactory, $publicDirectory, $hashAlgorithm);
     }
 
-    /**
-     * @dataProvider provideFiles
-     */
+    #[DataProvider('provideFiles')]
     public function testIfMatch(string $body, string $contentLength, ?string $contentType, string $extension): void
     {
         $publicDirectory = sys_get_temp_dir();
@@ -126,9 +125,7 @@ final class StaticFileMiddlewareTest extends TestCase
         self::assertSame($response, $middleware->process($request, $handler));
     }
 
-    /**
-     * @dataProvider provideFiles
-     */
+    #[DataProvider('provideFiles')]
     public function testIfMatchWithDefaultHashAlgorithm(
         string $body,
         string $contentLength,
@@ -182,9 +179,7 @@ final class StaticFileMiddlewareTest extends TestCase
         self::assertSame($response, $middleware->process($request, $handler));
     }
 
-    /**
-     * @dataProvider provideFiles
-     */
+    #[DataProvider('provideFiles')]
     public function testIfNoneMatch(string $body, string $contentLength, ?string $contentType, string $extension): void
     {
         $publicDirectory = sys_get_temp_dir();

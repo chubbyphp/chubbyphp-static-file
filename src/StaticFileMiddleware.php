@@ -34,7 +34,7 @@ final class StaticFileMiddleware implements MiddlewareInterface
             throw new \LogicException(\sprintf('Invalid or not supported hash algorithm: "%s"', $hashAlgorithm));
         }
         $this->hashAlgorithm = $hashAlgorithm;
-        $this->mimetypes = $mimetypes ?? (array) require __DIR__.'/mimetypes.php';
+        $this->mimetypes = $mimetypes ?? require __DIR__.'/mimetypes.php';
     }
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface

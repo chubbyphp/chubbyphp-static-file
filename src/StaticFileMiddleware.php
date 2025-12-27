@@ -13,20 +13,20 @@ use Psr\Http\Server\RequestHandlerInterface;
 
 final class StaticFileMiddleware implements MiddlewareInterface
 {
-    private string $hashAlgorithm;
+    private readonly string $hashAlgorithm;
 
     /**
      * @var array<string, string>
      */
-    private array $mimetypes;
+    private readonly array $mimetypes;
 
     /**
      * @param null|array<string, string> $mimetypes
      */
     public function __construct(
-        private ResponseFactoryInterface $responseFactory,
-        private StreamFactoryInterface $streamFactory,
-        private string $publicDirectory,
+        private readonly ResponseFactoryInterface $responseFactory,
+        private readonly StreamFactoryInterface $streamFactory,
+        private readonly string $publicDirectory,
         string $hashAlgorithm = 'md5',
         ?array $mimetypes = null,
     ) {

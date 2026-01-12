@@ -72,7 +72,7 @@ $app->add(new StaticFileMiddleware(
 
 ## Copyright
 
-2025 Dominik Zogg
+2026 Dominik Zogg
 
 [1]: https://packagist.org/packages/chubbyphp/chubbyphp-static-file
 

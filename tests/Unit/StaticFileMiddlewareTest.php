@@ -237,6 +237,131 @@ final class StaticFileMiddlewareTest extends TestCase
         self::assertSame($response, $middleware->process($request, $handler));
     }
 
+    #[DataProvider('provideFiles')]
+    public function testIfNoneMatchWithDifferentEtag(
+        string $body,
+        string $contentLength,
+        ?string $contentType,
+        string $extension
+    ): void {
+        $publicDirectory = sys_get_temp_dir();
+        $requestTarget = '/'.uniqid().uniqid().'.'.$extension;
+        $filename = $publicDirectory.$requestTarget;
+        $hashAlgorithm = 'adler32';
+
+        file_put_contents($filename, $body);
+
+        $hash = hash_file($hashAlgorithm, $filename);
+
+        $builder = new MockObjectBuilder();
+
+        /** @var ServerRequestInterface $request */
+        $request = $builder->create(ServerRequestInterface::class, [
+            new WithReturn('getRequestTarget', [], $requestTarget),
+            new WithReturn('getHeaderLine', ['If-None-Match'], $hash.'-different'),
+        ]);
+
+        /** @var StreamInterface $responseBody */
+        $responseBody = $builder->create(StreamInterface::class, []);
+
+        if (null !== $contentType) {
+            /** @var ResponseInterface $response */
+            $response = $builder->create(ResponseInterface::class, [
+                new WithReturnSelf('withHeader', ['Content-Length', $contentLength]),
+                new WithReturnSelf('withHeader', ['Content-Type', $contentType]),
+                new WithReturnSelf('withHeader', ['ETag', $hash]),
+                new WithReturnSelf('withBody', [$responseBody]),
+            ]);
+        } else {
+            /** @var ResponseInterface $response */
+            $response = $builder->create(ResponseInterface::class, [
+                new WithReturnSelf('withHeader', ['Content-Length', $contentLength]),
+                new WithReturnSelf('withHeader', ['ETag', $hash]),
+                new WithReturnSelf('withBody', [$responseBody]),
+            ]);
+        }
+
+        /** @var RequestHandlerInterface $handler */
+        $handler = $builder->create(RequestHandlerInterface::class, []);
+
+        /** @var ResponseFactoryInterface $responseFactory */
+        $responseFactory = $builder->create(ResponseFactoryInterface::class, [
+            new WithReturn('createResponse', [200, ''], $response),
+        ]);
+
+        /** @var StreamFactoryInterface $streamFactory */
+        $streamFactory = $builder->create(StreamFactoryInterface::class, [
+            new WithReturn('createStreamFromFile', [$filename, 'r'], $responseBody),
+        ]);
+
+        $middleware = new StaticFileMiddleware($responseFactory, $streamFactory, $publicDirectory, $hashAlgorithm);
+
+        self::assertSame($response, $middleware->process($request, $handler));
+    }
+
+    #[DataProvider('provideFiles')]
+    public function testUsesCustomMimetypes(
+        string $body,
+        string $contentLength,
+        ?string $contentType,
+        string $extension
+    ): void {
+        $publicDirectory = sys_get_temp_dir();
+        $requestTarget = '/'.uniqid().uniqid().'.'.$extension;
+        $filename = $publicDirectory.$requestTarget;
+        $hashAlgorithm = 'adler32';
+        $customContentType = 'application/custom-'.$extension;
+        $mimetypes = null !== $contentType ? [$extension => $customContentType] : [];
+
+        file_put_contents($filename, $body);
+
+        $hash = hash_file($hashAlgorithm, $filename);
+
+        $builder = new MockObjectBuilder();
+
+        /** @var ServerRequestInterface $request */
+        $request = $builder->create(ServerRequestInterface::class, [
+            new WithReturn('getRequestTarget', [], $requestTarget),
+            new WithReturn('getHeaderLine', ['If-None-Match'], $hash),
+        ]);
+
+        if (null !== $contentType) {
+            /** @var ResponseInterface $response */
+            $response = $builder->create(ResponseInterface::class, [
+                new WithReturnSelf('withHeader', ['Content-Length', $contentLength]),
+                new WithReturnSelf('withHeader', ['Content-Type', $customContentType]),
+                new WithReturnSelf('withHeader', ['ETag', $hash]),
+            ]);
+        } else {
+            /** @var ResponseInterface $response */
+            $response = $builder->create(ResponseInterface::class, [
+                new WithReturnSelf('withHeader', ['Content-Length', $contentLength]),
+                new WithReturnSelf('withHeader', ['ETag', $hash]),
+            ]);
+        }
+
+        /** @var RequestHandlerInterface $handler */
+        $handler = $builder->create(RequestHandlerInterface::class, []);
+
+        /** @var ResponseFactoryInterface $responseFactory */
+        $responseFactory = $builder->create(ResponseFactoryInterface::class, [
+            new WithReturn('createResponse', [304, ''], $response),
+        ]);
+
+        /** @var StreamFactoryInterface $streamFactory */
+        $streamFactory = $builder->create(StreamFactoryInterface::class, []);
+
+        $middleware = new StaticFileMiddleware(
+            $responseFactory,
+            $streamFactory,
+            $publicDirectory,
+            $hashAlgorithm,
+            $mimetypes
+        );
+
+        self::assertSame($response, $middleware->process($request, $handler));
+    }
+
     public static function provideFiles(): iterable
     {
         return [

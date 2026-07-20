@@ -204,6 +204,46 @@ final class StaticFileMiddlewareTest extends TestCase
         }
     }
 
+    public function testFifoWithinPublicDirectoryIsNotServed(): void
+    {
+        $publicDirectory = sys_get_temp_dir().'/'.uniqid('chubbyphp-static-file-', true);
+        $fifo = $publicDirectory.'/asset.fifo';
+
+        mkdir($publicDirectory, 0o777, true);
+
+        if (\function_exists('posix_mkfifo')) {
+            posix_mkfifo($fifo, 0o666);
+        } else {
+            @exec('mkfifo '.escapeshellarg($fifo).' 2>/dev/null');
+        }
+
+        if (!file_exists($fifo)) {
+            rmdir($publicDirectory);
+
+            self::markTestSkipped('unable to create a fifo');
+        }
+
+        try {
+            $request = self::createStub(ServerRequestInterface::class);
+            $request->method('getRequestTarget')->willReturn('/asset.fifo');
+            $request->method('getMethod')->willReturn('GET');
+
+            $response = self::createStub(ResponseInterface::class);
+            $handler = self::createStub(RequestHandlerInterface::class);
+            $handler->method('handle')->willReturn($response);
+
+            $responseFactory = self::createStub(ResponseFactoryInterface::class);
+            $streamFactory = self::createStub(StreamFactoryInterface::class);
+
+            $middleware = new StaticFileMiddleware($responseFactory, $streamFactory, $publicDirectory);
+
+            self::assertSame($response, $middleware->process($request, $handler));
+        } finally {
+            unlink($fifo);
+            rmdir($publicDirectory);
+        }
+    }
+
     public function testRelativeRequestTargetIsNotServed(): void
     {
         $publicDirectory = sys_get_temp_dir().'/'.uniqid('chubbyphp-static-file-', true);

@@ -56,7 +56,7 @@ final class StaticFileMiddleware implements MiddlewareInterface
             return $handler->handle($request);
         }
 
-        if (!is_readable($filename) || is_dir($filename)) {
+        if (!is_file($filename) || !is_readable($filename)) {
             return $handler->handle($request);
         }
 

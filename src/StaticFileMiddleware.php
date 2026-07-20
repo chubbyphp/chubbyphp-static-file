@@ -33,13 +33,28 @@ final class StaticFileMiddleware implements MiddlewareInterface
         if (!\in_array($hashAlgorithm, hash_algos(), true)) {
             throw new \LogicException(\sprintf('Invalid or not supported hash algorithm: "%s"', $hashAlgorithm));
         }
+
         $this->hashAlgorithm = $hashAlgorithm;
         $this->mimetypes = $mimetypes ?? require __DIR__.'/mimetypes.php';
     }
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
-        $filename = $this->publicDirectory.$request->getRequestTarget();
+        $publicDirectory = realpath($this->publicDirectory);
+        if (false === $publicDirectory || !is_dir($publicDirectory)) {
+            return $handler->handle($request);
+        }
+
+        $requestTarget = $request->getRequestTarget();
+        $requestPath = substr($requestTarget, 0, strcspn($requestTarget, '?'));
+        $filename = realpath($publicDirectory.$requestPath);
+
+        if (
+            false === $filename
+            || !str_starts_with($filename, rtrim($publicDirectory, \DIRECTORY_SEPARATOR).\DIRECTORY_SEPARATOR)
+        ) {
+            return $handler->handle($request);
+        }
 
         if (!is_readable($filename) || is_dir($filename)) {
             return $handler->handle($request);

@@ -55,6 +55,250 @@ final class StaticFileMiddlewareTest extends TestCase
         self::assertSame($response, $middleware->process($request, $handler));
     }
 
+    public function testPathTraversalIsNotServed(): void
+    {
+        $baseDirectory = sys_get_temp_dir().'/'.uniqid('chubbyphp-static-file-', true);
+        $publicDirectory = $baseDirectory.'/public';
+        $secretFilename = $baseDirectory.'/secret.outside';
+        $requestTarget = '/../secret.outside';
+        $secret = 'must not be served';
+
+        mkdir($publicDirectory, 0o777, true);
+        file_put_contents($secretFilename, $secret);
+
+        try {
+            $builder = new MockObjectBuilder();
+
+            /** @var ServerRequestInterface $request */
+            $request = $builder->create(ServerRequestInterface::class, [
+                new WithReturn('getRequestTarget', [], $requestTarget),
+            ]);
+
+            /** @var ResponseInterface $handlerResponse */
+            $handlerResponse = $builder->create(ResponseInterface::class, []);
+
+            $handler = new class($handlerResponse) implements RequestHandlerInterface {
+                public function __construct(private ResponseInterface $response) {}
+
+                public function handle(ServerRequestInterface $request): ResponseInterface
+                {
+                    return $this->response;
+                }
+            };
+
+            /** @var ResponseFactoryInterface $responseFactory */
+            $responseFactory = $builder->create(ResponseFactoryInterface::class, []);
+
+            /** @var StreamFactoryInterface $streamFactory */
+            $streamFactory = $builder->create(StreamFactoryInterface::class, []);
+
+            $middleware = new StaticFileMiddleware($responseFactory, $streamFactory, $publicDirectory);
+
+            self::assertSame($handlerResponse, $middleware->process($request, $handler));
+        } finally {
+            unlink($secretFilename);
+            rmdir($publicDirectory);
+            rmdir($baseDirectory);
+        }
+    }
+
+    public function testPathTraversalToDirectoryWithSamePrefixIsNotServed(): void
+    {
+        $baseDirectory = sys_get_temp_dir().'/'.uniqid('chubbyphp-static-file-', true);
+        $publicDirectory = $baseDirectory.'/public';
+        $privateDirectory = $baseDirectory.'/public-private';
+        $secretFilename = $privateDirectory.'/secret.outside';
+
+        mkdir($publicDirectory, 0o777, true);
+        mkdir($privateDirectory, 0o777, true);
+        file_put_contents($secretFilename, 'must not be served');
+
+        try {
+            $request = self::createStub(ServerRequestInterface::class);
+            $request->method('getRequestTarget')->willReturn('/../public-private/secret.outside');
+
+            $handlerResponse = self::createStub(ResponseInterface::class);
+            $handler = self::createStub(RequestHandlerInterface::class);
+            $handler->method('handle')->willReturn($handlerResponse);
+
+            $staticFileResponse = self::createStub(ResponseInterface::class);
+            $staticFileResponse->method('withHeader')->willReturnSelf();
+            $staticFileResponse->method('withBody')->willReturnSelf();
+
+            $responseFactory = self::createStub(ResponseFactoryInterface::class);
+            $responseFactory->method('createResponse')->willReturn($staticFileResponse);
+
+            $responseBody = self::createStub(StreamInterface::class);
+            $streamFactory = self::createStub(StreamFactoryInterface::class);
+            $streamFactory->method('createStreamFromFile')->willReturn($responseBody);
+
+            $middleware = new StaticFileMiddleware($responseFactory, $streamFactory, $publicDirectory);
+
+            self::assertSame($handlerResponse, $middleware->process($request, $handler));
+        } finally {
+            unlink($secretFilename);
+            rmdir($privateDirectory);
+            rmdir($publicDirectory);
+            rmdir($baseDirectory);
+        }
+    }
+
+    public function testFileIsNotAValidPublicDirectory(): void
+    {
+        $publicDirectory = tempnam(sys_get_temp_dir(), 'chubbyphp-static-file-');
+
+        try {
+            $builder = new MockObjectBuilder();
+
+            /** @var ServerRequestInterface $request */
+            $request = $builder->create(ServerRequestInterface::class, []);
+
+            /** @var ResponseInterface $response */
+            $response = $builder->create(ResponseInterface::class, []);
+
+            /** @var RequestHandlerInterface $handler */
+            $handler = $builder->create(RequestHandlerInterface::class, [
+                new WithReturn('handle', [$request], $response),
+            ]);
+
+            /** @var ResponseFactoryInterface $responseFactory */
+            $responseFactory = $builder->create(ResponseFactoryInterface::class, []);
+
+            /** @var StreamFactoryInterface $streamFactory */
+            $streamFactory = $builder->create(StreamFactoryInterface::class, []);
+
+            $middleware = new StaticFileMiddleware($responseFactory, $streamFactory, $publicDirectory);
+
+            self::assertSame($response, $middleware->process($request, $handler));
+        } finally {
+            unlink($publicDirectory);
+        }
+    }
+
+    public function testDirectoryWithinPublicDirectoryIsNotServed(): void
+    {
+        $publicDirectory = sys_get_temp_dir().'/'.uniqid('chubbyphp-static-file-', true);
+        $directory = $publicDirectory.'/assets';
+
+        mkdir($directory, 0o777, true);
+
+        try {
+            $request = self::createStub(ServerRequestInterface::class);
+            $request->method('getRequestTarget')->willReturn('/assets');
+
+            $response = self::createStub(ResponseInterface::class);
+            $handler = self::createStub(RequestHandlerInterface::class);
+            $handler->method('handle')->willReturn($response);
+
+            $responseFactory = self::createStub(ResponseFactoryInterface::class);
+            $streamFactory = self::createStub(StreamFactoryInterface::class);
+
+            $middleware = new StaticFileMiddleware($responseFactory, $streamFactory, $publicDirectory);
+
+            self::assertSame($response, $middleware->process($request, $handler));
+        } finally {
+            rmdir($directory);
+            rmdir($publicDirectory);
+        }
+    }
+
+    public function testRelativeRequestTargetIsNotServed(): void
+    {
+        $publicDirectory = sys_get_temp_dir().'/'.uniqid('chubbyphp-static-file-', true);
+        $filename = $publicDirectory.'/asset.outside';
+
+        mkdir($publicDirectory, 0o777, true);
+        file_put_contents($filename, 'asset');
+
+        try {
+            $request = self::createStub(ServerRequestInterface::class);
+            $request->method('getRequestTarget')->willReturn('asset.outside');
+
+            $handlerResponse = self::createStub(ResponseInterface::class);
+            $handler = self::createStub(RequestHandlerInterface::class);
+            $handler->method('handle')->willReturn($handlerResponse);
+
+            $responseFactory = self::createStub(ResponseFactoryInterface::class);
+            $streamFactory = self::createStub(StreamFactoryInterface::class);
+
+            $middleware = new StaticFileMiddleware($responseFactory, $streamFactory, $publicDirectory);
+
+            self::assertSame($handlerResponse, $middleware->process($request, $handler));
+        } finally {
+            unlink($filename);
+            rmdir($publicDirectory);
+        }
+    }
+
+    public function testRequestTargetQueryStringIsNotPartOfFilename(): void
+    {
+        $publicDirectory = sys_get_temp_dir().'/'.uniqid('chubbyphp-static-file-', true);
+        $filename = $publicDirectory.'/asset.outside';
+
+        mkdir($publicDirectory, 0o777, true);
+        file_put_contents($filename, 'asset');
+
+        try {
+            $request = self::createStub(ServerRequestInterface::class);
+            $request->method('getRequestTarget')->willReturn('/asset.outside?version=1');
+
+            $handlerResponse = self::createStub(ResponseInterface::class);
+            $handler = self::createStub(RequestHandlerInterface::class);
+            $handler->method('handle')->willReturn($handlerResponse);
+
+            $staticFileResponse = self::createStub(ResponseInterface::class);
+            $staticFileResponse->method('withHeader')->willReturnSelf();
+            $staticFileResponse->method('withBody')->willReturnSelf();
+
+            $responseFactory = self::createStub(ResponseFactoryInterface::class);
+            $responseFactory->method('createResponse')->willReturn($staticFileResponse);
+
+            $responseBody = self::createStub(StreamInterface::class);
+            $streamFactory = self::createStub(StreamFactoryInterface::class);
+            $streamFactory->method('createStreamFromFile')->willReturn($responseBody);
+
+            $middleware = new StaticFileMiddleware($responseFactory, $streamFactory, $publicDirectory);
+
+            self::assertSame($staticFileResponse, $middleware->process($request, $handler));
+        } finally {
+            unlink($filename);
+            rmdir($publicDirectory);
+        }
+    }
+
+    public function testFileIsServedWhenPublicDirectoryIsFilesystemRoot(): void
+    {
+        $filename = tempnam(sys_get_temp_dir(), 'chubbyphp-static-file-');
+
+        file_put_contents($filename, 'asset');
+
+        try {
+            $request = self::createStub(ServerRequestInterface::class);
+            $request->method('getRequestTarget')->willReturn($filename);
+
+            $handlerResponse = self::createStub(ResponseInterface::class);
+            $handler = self::createStub(RequestHandlerInterface::class);
+            $handler->method('handle')->willReturn($handlerResponse);
+
+            $staticFileResponse = self::createStub(ResponseInterface::class);
+            $staticFileResponse->method('withHeader')->willReturnSelf();
+            $staticFileResponse->method('withBody')->willReturnSelf();
+
+            $responseFactory = self::createStub(ResponseFactoryInterface::class);
+            $responseFactory->method('createResponse')->willReturn($staticFileResponse);
+
+            $responseBody = self::createStub(StreamInterface::class);
+            $streamFactory = self::createStub(StreamFactoryInterface::class);
+            $streamFactory->method('createStreamFromFile')->willReturn($responseBody);
+
+            $middleware = new StaticFileMiddleware($responseFactory, $streamFactory, \DIRECTORY_SEPARATOR);
+
+            self::assertSame($staticFileResponse, $middleware->process($request, $handler));
+        } finally {
+            unlink($filename);
+        }
+    }
+
     public function testInvalidHashAlgorithm(): void
     {
         $this->expectException(\LogicException::class);

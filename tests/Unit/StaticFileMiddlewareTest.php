@@ -328,7 +328,7 @@ final class StaticFileMiddlewareTest extends TestCase
 
         file_put_contents($filename, $body);
 
-        $hash = hash_file($hashAlgorithm, $filename);
+        $hash = '"'.hash_file($hashAlgorithm, $filename).'"';
 
         $builder = new MockObjectBuilder();
 
@@ -382,7 +382,7 @@ final class StaticFileMiddlewareTest extends TestCase
 
         file_put_contents($filename, $body);
 
-        $hash = hash_file('md5', $filename);
+        $hash = '"'.hash_file('md5', $filename).'"';
 
         $builder = new MockObjectBuilder();
 
@@ -423,6 +423,66 @@ final class StaticFileMiddlewareTest extends TestCase
         self::assertSame($response, $middleware->process($request, $handler));
     }
 
+    #[DataProvider('provideIfNoneMatchRecognizesWildcardWeakAndListedEtagsCases')]
+    public function testIfNoneMatchRecognizesWildcardWeakAndListedEtags(string $type): void
+    {
+        $publicDirectory = sys_get_temp_dir();
+        $requestTarget = '/'.uniqid().uniqid().'.outside';
+        $filename = $publicDirectory.$requestTarget;
+        $body = 'asset';
+
+        file_put_contents($filename, $body);
+
+        try {
+            $etag = '"'.hash_file('md5', $filename).'"';
+            $ifNoneMatch = match ($type) {
+                'wildcard' => '*',
+                'weak' => 'W/'.$etag,
+                'list' => '"other", W/'.$etag,
+            };
+
+            $builder = new MockObjectBuilder();
+
+            /** @var ServerRequestInterface $request */
+            $request = $builder->create(ServerRequestInterface::class, [
+                new WithReturn('getRequestTarget', [], $requestTarget),
+                new WithReturn('getHeaderLine', ['If-None-Match'], $ifNoneMatch),
+            ]);
+
+            /** @var ResponseInterface $response */
+            $response = $builder->create(ResponseInterface::class, [
+                new WithReturnSelf('withHeader', ['Content-Length', (string) \strlen($body)]),
+                new WithReturnSelf('withHeader', ['ETag', $etag]),
+            ]);
+
+            /** @var RequestHandlerInterface $handler */
+            $handler = $builder->create(RequestHandlerInterface::class, []);
+
+            /** @var ResponseFactoryInterface $responseFactory */
+            $responseFactory = $builder->create(ResponseFactoryInterface::class, [
+                new WithReturn('createResponse', [304, ''], $response),
+            ]);
+
+            /** @var StreamFactoryInterface $streamFactory */
+            $streamFactory = $builder->create(StreamFactoryInterface::class, []);
+
+            $middleware = new StaticFileMiddleware($responseFactory, $streamFactory, $publicDirectory, 'md5', []);
+
+            self::assertSame($response, $middleware->process($request, $handler));
+        } finally {
+            unlink($filename);
+        }
+    }
+
+    public static function provideIfNoneMatchRecognizesWildcardWeakAndListedEtagsCases(): iterable
+    {
+        return [
+            ['wildcard'],
+            ['weak'],
+            ['list'],
+        ];
+    }
+
     #[DataProvider('provideFiles')]
     public function testIfNoneMatch(string $body, string $contentLength, ?string $contentType, string $extension): void
     {
@@ -433,7 +493,7 @@ final class StaticFileMiddlewareTest extends TestCase
 
         file_put_contents($filename, $body);
 
-        $hash = hash_file($hashAlgorithm, $filename);
+        $hash = '"'.hash_file($hashAlgorithm, $filename).'"';
 
         $builder = new MockObjectBuilder();
 
@@ -495,7 +555,7 @@ final class StaticFileMiddlewareTest extends TestCase
 
         file_put_contents($filename, $body);
 
-        $hash = hash_file($hashAlgorithm, $filename);
+        $hash = '"'.hash_file($hashAlgorithm, $filename).'"';
 
         $builder = new MockObjectBuilder();
 
@@ -559,7 +619,7 @@ final class StaticFileMiddlewareTest extends TestCase
 
         file_put_contents($filename, $body);
 
-        $hash = hash_file($hashAlgorithm, $filename);
+        $hash = '"'.hash_file($hashAlgorithm, $filename).'"';
 
         $builder = new MockObjectBuilder();
 

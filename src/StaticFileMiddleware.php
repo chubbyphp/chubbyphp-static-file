@@ -61,23 +61,44 @@ final class StaticFileMiddleware implements MiddlewareInterface
         }
 
         $hash = hash_file($this->hashAlgorithm, $filename);
+        $etag = '"'.$hash.'"';
 
-        if ($request->getHeaderLine('If-None-Match') === $hash) {
-            return $this->createResponse(304, $filename, $hash);
+        if ($this->matchesIfNoneMatch($request->getHeaderLine('If-None-Match'), $etag)) {
+            return $this->createResponse(304, $filename, $etag);
         }
 
-        return $this->createResponse(200, $filename, $hash)
+        return $this->createResponse(200, $filename, $etag)
             ->withBody($this->streamFactory->createStreamFromFile($filename))
         ;
     }
 
-    private function createResponse(int $code, string $filename, string $hash): ResponseInterface
+    private function createResponse(int $code, string $filename, string $etag): ResponseInterface
     {
         $response = $this->responseFactory->createResponse($code);
         $response = $response->withHeader('Content-Length', (string) filesize($filename));
         $response = $this->addContentType($response, $filename);
 
-        return $response->withHeader('ETag', $hash);
+        return $response->withHeader('ETag', $etag);
+    }
+
+    private function matchesIfNoneMatch(string $header, string $etag): bool
+    {
+        foreach (explode(',', $header) as $candidate) {
+            $candidate = trim($candidate);
+            if ('*' === $candidate) {
+                return true;
+            }
+
+            if (str_starts_with($candidate, 'W/')) {
+                $candidate = substr($candidate, 2);
+            }
+
+            if ($etag === $candidate) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function addContentType(ResponseInterface $response, string $filename): ResponseInterface

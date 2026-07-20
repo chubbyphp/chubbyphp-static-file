@@ -60,6 +60,11 @@ final class StaticFileMiddleware implements MiddlewareInterface
             return $handler->handle($request);
         }
 
+        $method = $request->getMethod();
+        if (!\in_array($method, ['GET', 'HEAD'], true)) {
+            return $handler->handle($request);
+        }
+
         $hash = hash_file($this->hashAlgorithm, $filename);
         $etag = '"'.$hash.'"';
 
@@ -67,9 +72,12 @@ final class StaticFileMiddleware implements MiddlewareInterface
             return $this->createResponse(304, $filename, $etag);
         }
 
-        return $this->createResponse(200, $filename, $etag)
-            ->withBody($this->streamFactory->createStreamFromFile($filename))
-        ;
+        $response = $this->createResponse(200, $filename, $etag);
+        if ('HEAD' === $method) {
+            return $response;
+        }
+
+        return $response->withBody($this->streamFactory->createStreamFromFile($filename));
     }
 
     private function createResponse(int $code, string $filename, string $etag): ResponseInterface

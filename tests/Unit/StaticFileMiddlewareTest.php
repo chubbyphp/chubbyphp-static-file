@@ -116,6 +116,7 @@ final class StaticFileMiddlewareTest extends TestCase
         try {
             $request = self::createStub(ServerRequestInterface::class);
             $request->method('getRequestTarget')->willReturn('/../public-private/secret.outside');
+            $request->method('getMethod')->willReturn('GET');
 
             $handlerResponse = self::createStub(ResponseInterface::class);
             $handler = self::createStub(RequestHandlerInterface::class);
@@ -185,6 +186,7 @@ final class StaticFileMiddlewareTest extends TestCase
         try {
             $request = self::createStub(ServerRequestInterface::class);
             $request->method('getRequestTarget')->willReturn('/assets');
+            $request->method('getMethod')->willReturn('GET');
 
             $response = self::createStub(ResponseInterface::class);
             $handler = self::createStub(RequestHandlerInterface::class);
@@ -213,6 +215,7 @@ final class StaticFileMiddlewareTest extends TestCase
         try {
             $request = self::createStub(ServerRequestInterface::class);
             $request->method('getRequestTarget')->willReturn('asset.outside');
+            $request->method('getMethod')->willReturn('GET');
 
             $handlerResponse = self::createStub(ResponseInterface::class);
             $handler = self::createStub(RequestHandlerInterface::class);
@@ -241,6 +244,7 @@ final class StaticFileMiddlewareTest extends TestCase
         try {
             $request = self::createStub(ServerRequestInterface::class);
             $request->method('getRequestTarget')->willReturn('/asset.outside?version=1');
+            $request->method('getMethod')->willReturn('GET');
 
             $handlerResponse = self::createStub(ResponseInterface::class);
             $handler = self::createStub(RequestHandlerInterface::class);
@@ -275,6 +279,7 @@ final class StaticFileMiddlewareTest extends TestCase
         try {
             $request = self::createStub(ServerRequestInterface::class);
             $request->method('getRequestTarget')->willReturn($filename);
+            $request->method('getMethod')->willReturn('GET');
 
             $handlerResponse = self::createStub(ResponseInterface::class);
             $handler = self::createStub(RequestHandlerInterface::class);
@@ -335,6 +340,7 @@ final class StaticFileMiddlewareTest extends TestCase
         /** @var ServerRequestInterface $request */
         $request = $builder->create(ServerRequestInterface::class, [
             new WithReturn('getRequestTarget', [], $requestTarget),
+            new WithReturn('getMethod', [], 'GET'),
             new WithReturn('getHeaderLine', ['If-None-Match'], $hash),
         ]);
 
@@ -389,6 +395,7 @@ final class StaticFileMiddlewareTest extends TestCase
         /** @var ServerRequestInterface $request */
         $request = $builder->create(ServerRequestInterface::class, [
             new WithReturn('getRequestTarget', [], $requestTarget),
+            new WithReturn('getMethod', [], 'GET'),
             new WithReturn('getHeaderLine', ['If-None-Match'], $hash),
         ]);
 
@@ -446,6 +453,7 @@ final class StaticFileMiddlewareTest extends TestCase
             /** @var ServerRequestInterface $request */
             $request = $builder->create(ServerRequestInterface::class, [
                 new WithReturn('getRequestTarget', [], $requestTarget),
+                new WithReturn('getMethod', [], 'GET'),
                 new WithReturn('getHeaderLine', ['If-None-Match'], $ifNoneMatch),
             ]);
 
@@ -500,6 +508,7 @@ final class StaticFileMiddlewareTest extends TestCase
         /** @var ServerRequestInterface $request */
         $request = $builder->create(ServerRequestInterface::class, [
             new WithReturn('getRequestTarget', [], $requestTarget),
+            new WithReturn('getMethod', [], 'GET'),
             new WithReturn('getHeaderLine', ['If-None-Match'], ''),
         ]);
 
@@ -562,6 +571,7 @@ final class StaticFileMiddlewareTest extends TestCase
         /** @var ServerRequestInterface $request */
         $request = $builder->create(ServerRequestInterface::class, [
             new WithReturn('getRequestTarget', [], $requestTarget),
+            new WithReturn('getMethod', [], 'GET'),
             new WithReturn('getHeaderLine', ['If-None-Match'], $hash.'-different'),
         ]);
 
@@ -626,6 +636,7 @@ final class StaticFileMiddlewareTest extends TestCase
         /** @var ServerRequestInterface $request */
         $request = $builder->create(ServerRequestInterface::class, [
             new WithReturn('getRequestTarget', [], $requestTarget),
+            new WithReturn('getMethod', [], 'GET'),
             new WithReturn('getHeaderLine', ['If-None-Match'], $hash),
         ]);
 
@@ -699,6 +710,104 @@ final class StaticFileMiddlewareTest extends TestCase
                 'contentType' => null,
                 'extension' => 'xxxxxxxxx',
             ],
+        ];
+    }
+
+    public function testHeadRequestIsServedWithoutBody(): void
+    {
+        $publicDirectory = sys_get_temp_dir();
+        $requestTarget = '/'.uniqid().uniqid().'.json';
+        $filename = $publicDirectory.$requestTarget;
+        $body = '{"key":"value"}';
+
+        file_put_contents($filename, $body);
+
+        try {
+            $hash = '"'.hash_file('md5', $filename).'"';
+
+            $builder = new MockObjectBuilder();
+
+            /** @var ServerRequestInterface $request */
+            $request = $builder->create(ServerRequestInterface::class, [
+                new WithReturn('getRequestTarget', [], $requestTarget),
+                new WithReturn('getMethod', [], 'HEAD'),
+                new WithReturn('getHeaderLine', ['If-None-Match'], ''),
+            ]);
+
+            /** @var ResponseInterface $response */
+            $response = $builder->create(ResponseInterface::class, [
+                new WithReturnSelf('withHeader', ['Content-Length', (string) \strlen($body)]),
+                new WithReturnSelf('withHeader', ['Content-Type', 'application/json']),
+                new WithReturnSelf('withHeader', ['ETag', $hash]),
+            ]);
+
+            /** @var RequestHandlerInterface $handler */
+            $handler = $builder->create(RequestHandlerInterface::class, []);
+
+            /** @var ResponseFactoryInterface $responseFactory */
+            $responseFactory = $builder->create(ResponseFactoryInterface::class, [
+                new WithReturn('createResponse', [200, ''], $response),
+            ]);
+
+            /** @var StreamFactoryInterface $streamFactory */
+            $streamFactory = $builder->create(StreamFactoryInterface::class, []);
+
+            $middleware = new StaticFileMiddleware($responseFactory, $streamFactory, $publicDirectory);
+
+            self::assertSame($response, $middleware->process($request, $handler));
+        } finally {
+            unlink($filename);
+        }
+    }
+
+    #[DataProvider('provideNotAllowedMethodIsDelegatedToHandlerCases')]
+    public function testNotAllowedMethodIsDelegatedToHandler(string $method): void
+    {
+        $publicDirectory = sys_get_temp_dir();
+        $requestTarget = '/'.uniqid().uniqid().'.json';
+        $filename = $publicDirectory.$requestTarget;
+
+        file_put_contents($filename, '{"key":"value"}');
+
+        try {
+            $builder = new MockObjectBuilder();
+
+            /** @var ServerRequestInterface $request */
+            $request = $builder->create(ServerRequestInterface::class, [
+                new WithReturn('getRequestTarget', [], $requestTarget),
+                new WithReturn('getMethod', [], $method),
+            ]);
+
+            /** @var ResponseInterface $response */
+            $response = $builder->create(ResponseInterface::class, []);
+
+            /** @var RequestHandlerInterface $handler */
+            $handler = $builder->create(RequestHandlerInterface::class, [
+                new WithReturn('handle', [$request], $response),
+            ]);
+
+            /** @var ResponseFactoryInterface $responseFactory */
+            $responseFactory = $builder->create(ResponseFactoryInterface::class, []);
+
+            /** @var StreamFactoryInterface $streamFactory */
+            $streamFactory = $builder->create(StreamFactoryInterface::class, []);
+
+            $middleware = new StaticFileMiddleware($responseFactory, $streamFactory, $publicDirectory);
+
+            self::assertSame($response, $middleware->process($request, $handler));
+        } finally {
+            unlink($filename);
+        }
+    }
+
+    public static function provideNotAllowedMethodIsDelegatedToHandlerCases(): iterable
+    {
+        return [
+            ['POST'],
+            ['PUT'],
+            ['PATCH'],
+            ['DELETE'],
+            ['OPTIONS'],
         ];
     }
 

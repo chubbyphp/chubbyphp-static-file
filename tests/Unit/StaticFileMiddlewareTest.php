@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Chubbyphp\Tests\Unit\StaticFile;
 
+use Chubbyphp\Mock\MockMethod\WithException;
 use Chubbyphp\Mock\MockMethod\WithReturn;
 use Chubbyphp\Mock\MockMethod\WithReturnSelf;
 use Chubbyphp\Mock\MockObjectBuilder;
@@ -241,6 +242,93 @@ final class StaticFileMiddlewareTest extends TestCase
         } finally {
             unlink($fifo);
             rmdir($publicDirectory);
+        }
+    }
+
+    public function testFileThatCannotBeHashedIsNotServed(): void
+    {
+        $publicDirectory = '/proc/self';
+        $filename = $publicDirectory.'/mem';
+
+        if (!is_file($filename) || !is_readable($filename) || false !== @hash_file('md5', $filename)) {
+            self::markTestSkipped('requires a readable file that cannot be hashed, like /proc/self/mem on linux');
+        }
+
+        $request = self::createStub(ServerRequestInterface::class);
+        $request->method('getRequestTarget')->willReturn('/mem');
+        $request->method('getMethod')->willReturn('GET');
+
+        $handlerResponse = self::createStub(ResponseInterface::class);
+        $handler = self::createStub(RequestHandlerInterface::class);
+        $handler->method('handle')->willReturn($handlerResponse);
+
+        $staticFileResponse = self::createStub(ResponseInterface::class);
+        $staticFileResponse->method('withHeader')->willReturnSelf();
+        $staticFileResponse->method('withBody')->willReturnSelf();
+
+        $responseFactory = self::createStub(ResponseFactoryInterface::class);
+        $responseFactory->method('createResponse')->willReturn($staticFileResponse);
+
+        $responseBody = self::createStub(StreamInterface::class);
+        $streamFactory = self::createStub(StreamFactoryInterface::class);
+        $streamFactory->method('createStreamFromFile')->willReturn($responseBody);
+
+        $middleware = new StaticFileMiddleware($responseFactory, $streamFactory, $publicDirectory);
+
+        self::assertSame($handlerResponse, $middleware->process($request, $handler));
+    }
+
+    public function testFileVanishedBeforeStreamingIsDelegatedToHandler(): void
+    {
+        $publicDirectory = sys_get_temp_dir();
+        $requestTarget = '/'.uniqid().uniqid().'.json';
+        $filename = $publicDirectory.$requestTarget;
+        $body = '{"key":"value"}';
+
+        file_put_contents($filename, $body);
+
+        try {
+            $hash = '"'.hash_file('md5', $filename).'"';
+
+            $builder = new MockObjectBuilder();
+
+            /** @var ServerRequestInterface $request */
+            $request = $builder->create(ServerRequestInterface::class, [
+                new WithReturn('getRequestTarget', [], $requestTarget),
+                new WithReturn('getMethod', [], 'GET'),
+                new WithReturn('getHeaderLine', ['If-None-Match'], ''),
+            ]);
+
+            /** @var ResponseInterface $response */
+            $response = $builder->create(ResponseInterface::class, [
+                new WithReturnSelf('withHeader', ['Content-Length', (string) \strlen($body)]),
+                new WithReturnSelf('withHeader', ['Content-Type', 'application/json']),
+                new WithReturnSelf('withHeader', ['ETag', $hash]),
+            ]);
+
+            /** @var ResponseInterface $handlerResponse */
+            $handlerResponse = $builder->create(ResponseInterface::class, []);
+
+            /** @var RequestHandlerInterface $handler */
+            $handler = $builder->create(RequestHandlerInterface::class, [
+                new WithReturn('handle', [$request], $handlerResponse),
+            ]);
+
+            /** @var ResponseFactoryInterface $responseFactory */
+            $responseFactory = $builder->create(ResponseFactoryInterface::class, [
+                new WithReturn('createResponse', [200, ''], $response),
+            ]);
+
+            /** @var StreamFactoryInterface $streamFactory */
+            $streamFactory = $builder->create(StreamFactoryInterface::class, [
+                new WithException('createStreamFromFile', [$filename, 'r'], new \RuntimeException('file vanished')),
+            ]);
+
+            $middleware = new StaticFileMiddleware($responseFactory, $streamFactory, $publicDirectory);
+
+            self::assertSame($handlerResponse, $middleware->process($request, $handler));
+        } finally {
+            unlink($filename);
         }
     }
 

@@ -65,25 +65,35 @@ final class StaticFileMiddleware implements MiddlewareInterface
             return $handler->handle($request);
         }
 
-        $hash = hash_file($this->hashAlgorithm, $filename);
+        $fileSize = @filesize($filename);
+        $hash = @hash_file($this->hashAlgorithm, $filename);
+
+        if (!\is_int($fileSize) || !\is_string($hash)) {
+            return $handler->handle($request);
+        }
+
         $etag = '"'.$hash.'"';
 
         if ($this->matchesIfNoneMatch($request->getHeaderLine('If-None-Match'), $etag)) {
-            return $this->createResponse(304, $filename, $etag);
+            return $this->createResponse(304, $filename, $fileSize, $etag);
         }
 
-        $response = $this->createResponse(200, $filename, $etag);
+        $response = $this->createResponse(200, $filename, $fileSize, $etag);
         if ('HEAD' === $method) {
             return $response;
         }
 
-        return $response->withBody($this->streamFactory->createStreamFromFile($filename));
+        try {
+            return $response->withBody($this->streamFactory->createStreamFromFile($filename));
+        } catch (\RuntimeException) {
+            return $handler->handle($request);
+        }
     }
 
-    private function createResponse(int $code, string $filename, string $etag): ResponseInterface
+    private function createResponse(int $code, string $filename, int $fileSize, string $etag): ResponseInterface
     {
         $response = $this->responseFactory->createResponse($code);
-        $response = $response->withHeader('Content-Length', (string) filesize($filename));
+        $response = $response->withHeader('Content-Length', (string) $fileSize);
         $response = $this->addContentType($response, $filename);
 
         return $response->withHeader('ETag', $etag);

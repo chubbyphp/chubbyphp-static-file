@@ -95,6 +95,7 @@ final class StaticFileMiddleware implements MiddlewareInterface
         $response = $this->responseFactory->createResponse($code);
         $response = $response->withHeader('Content-Length', (string) $fileSize);
         $response = $this->addContentType($response, $filename);
+        $response = $response->withHeader('X-Content-Type-Options', 'nosniff');
 
         return $response->withHeader('ETag', $etag);
     }
@@ -122,10 +123,7 @@ final class StaticFileMiddleware implements MiddlewareInterface
     private function addContentType(ResponseInterface $response, string $filename): ResponseInterface
     {
         $extension = pathinfo($filename, PATHINFO_EXTENSION);
-        if (isset($this->mimetypes[$extension])) {
-            return $response->withHeader('Content-Type', $this->mimetypes[$extension]);
-        }
 
-        return $response;
+        return $response->withHeader('Content-Type', $this->mimetypes[$extension] ?? 'application/octet-stream');
     }
 }

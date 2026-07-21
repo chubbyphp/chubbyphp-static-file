@@ -303,6 +303,7 @@ final class StaticFileMiddlewareTest extends TestCase
             $response = $builder->create(ResponseInterface::class, [
                 new WithReturnSelf('withHeader', ['Content-Length', (string) \strlen($body)]),
                 new WithReturnSelf('withHeader', ['Content-Type', 'application/json']),
+                new WithReturnSelf('withHeader', ['X-Content-Type-Options', 'nosniff']),
                 new WithReturnSelf('withHeader', ['ETag', $hash]),
             ]);
 
@@ -472,20 +473,13 @@ final class StaticFileMiddlewareTest extends TestCase
             new WithReturn('getHeaderLine', ['If-None-Match'], $hash),
         ]);
 
-        if (null !== $contentType) {
-            /** @var ResponseInterface $response */
-            $response = $builder->create(ResponseInterface::class, [
-                new WithReturnSelf('withHeader', ['Content-Length', $contentLength]),
-                new WithReturnSelf('withHeader', ['Content-Type', $contentType]),
-                new WithReturnSelf('withHeader', ['ETag', $hash]),
-            ]);
-        } else {
-            /** @var ResponseInterface $response */
-            $response = $builder->create(ResponseInterface::class, [
-                new WithReturnSelf('withHeader', ['Content-Length', $contentLength]),
-                new WithReturnSelf('withHeader', ['ETag', $hash]),
-            ]);
-        }
+        /** @var ResponseInterface $response */
+        $response = $builder->create(ResponseInterface::class, [
+            new WithReturnSelf('withHeader', ['Content-Length', $contentLength]),
+            new WithReturnSelf('withHeader', ['Content-Type', $contentType ?? 'application/octet-stream']),
+            new WithReturnSelf('withHeader', ['X-Content-Type-Options', 'nosniff']),
+            new WithReturnSelf('withHeader', ['ETag', $hash]),
+        ]);
 
         /** @var RequestHandlerInterface $handler */
         $handler = $builder->create(RequestHandlerInterface::class, []);
@@ -527,20 +521,13 @@ final class StaticFileMiddlewareTest extends TestCase
             new WithReturn('getHeaderLine', ['If-None-Match'], $hash),
         ]);
 
-        if (null !== $contentType) {
-            /** @var ResponseInterface $response */
-            $response = $builder->create(ResponseInterface::class, [
-                new WithReturnSelf('withHeader', ['Content-Length', $contentLength]),
-                new WithReturnSelf('withHeader', ['Content-Type', $contentType]),
-                new WithReturnSelf('withHeader', ['ETag', $hash]),
-            ]);
-        } else {
-            /** @var ResponseInterface $response */
-            $response = $builder->create(ResponseInterface::class, [
-                new WithReturnSelf('withHeader', ['Content-Length', $contentLength]),
-                new WithReturnSelf('withHeader', ['ETag', $hash]),
-            ]);
-        }
+        /** @var ResponseInterface $response */
+        $response = $builder->create(ResponseInterface::class, [
+            new WithReturnSelf('withHeader', ['Content-Length', $contentLength]),
+            new WithReturnSelf('withHeader', ['Content-Type', $contentType ?? 'application/octet-stream']),
+            new WithReturnSelf('withHeader', ['X-Content-Type-Options', 'nosniff']),
+            new WithReturnSelf('withHeader', ['ETag', $hash]),
+        ]);
 
         /** @var RequestHandlerInterface $handler */
         $handler = $builder->create(RequestHandlerInterface::class, []);
@@ -588,6 +575,8 @@ final class StaticFileMiddlewareTest extends TestCase
             /** @var ResponseInterface $response */
             $response = $builder->create(ResponseInterface::class, [
                 new WithReturnSelf('withHeader', ['Content-Length', (string) \strlen($body)]),
+                new WithReturnSelf('withHeader', ['Content-Type', 'application/octet-stream']),
+                new WithReturnSelf('withHeader', ['X-Content-Type-Options', 'nosniff']),
                 new WithReturnSelf('withHeader', ['ETag', $etag]),
             ]);
 
@@ -643,22 +632,14 @@ final class StaticFileMiddlewareTest extends TestCase
         /** @var StreamInterface $responseBody */
         $responseBody = $builder->create(StreamInterface::class, []);
 
-        if (null !== $contentType) {
-            /** @var ResponseInterface $response */
-            $response = $builder->create(ResponseInterface::class, [
-                new WithReturnSelf('withHeader', ['Content-Length', $contentLength]),
-                new WithReturnSelf('withHeader', ['Content-Type', $contentType]),
-                new WithReturnSelf('withHeader', ['ETag', $hash]),
-                new WithReturnSelf('withBody', [$responseBody]),
-            ]);
-        } else {
-            /** @var ResponseInterface $response */
-            $response = $builder->create(ResponseInterface::class, [
-                new WithReturnSelf('withHeader', ['Content-Length', $contentLength]),
-                new WithReturnSelf('withHeader', ['ETag', $hash]),
-                new WithReturnSelf('withBody', [$responseBody]),
-            ]);
-        }
+        /** @var ResponseInterface $response */
+        $response = $builder->create(ResponseInterface::class, [
+            new WithReturnSelf('withHeader', ['Content-Length', $contentLength]),
+            new WithReturnSelf('withHeader', ['Content-Type', $contentType ?? 'application/octet-stream']),
+            new WithReturnSelf('withHeader', ['X-Content-Type-Options', 'nosniff']),
+            new WithReturnSelf('withHeader', ['ETag', $hash]),
+            new WithReturnSelf('withBody', [$responseBody]),
+        ]);
 
         /** @var RequestHandlerInterface $handler */
         $handler = $builder->create(RequestHandlerInterface::class, []);
@@ -706,22 +687,14 @@ final class StaticFileMiddlewareTest extends TestCase
         /** @var StreamInterface $responseBody */
         $responseBody = $builder->create(StreamInterface::class, []);
 
-        if (null !== $contentType) {
-            /** @var ResponseInterface $response */
-            $response = $builder->create(ResponseInterface::class, [
-                new WithReturnSelf('withHeader', ['Content-Length', $contentLength]),
-                new WithReturnSelf('withHeader', ['Content-Type', $contentType]),
-                new WithReturnSelf('withHeader', ['ETag', $hash]),
-                new WithReturnSelf('withBody', [$responseBody]),
-            ]);
-        } else {
-            /** @var ResponseInterface $response */
-            $response = $builder->create(ResponseInterface::class, [
-                new WithReturnSelf('withHeader', ['Content-Length', $contentLength]),
-                new WithReturnSelf('withHeader', ['ETag', $hash]),
-                new WithReturnSelf('withBody', [$responseBody]),
-            ]);
-        }
+        /** @var ResponseInterface $response */
+        $response = $builder->create(ResponseInterface::class, [
+            new WithReturnSelf('withHeader', ['Content-Length', $contentLength]),
+            new WithReturnSelf('withHeader', ['Content-Type', $contentType ?? 'application/octet-stream']),
+            new WithReturnSelf('withHeader', ['X-Content-Type-Options', 'nosniff']),
+            new WithReturnSelf('withHeader', ['ETag', $hash]),
+            new WithReturnSelf('withBody', [$responseBody]),
+        ]);
 
         /** @var RequestHandlerInterface $handler */
         $handler = $builder->create(RequestHandlerInterface::class, []);
@@ -768,20 +741,13 @@ final class StaticFileMiddlewareTest extends TestCase
             new WithReturn('getHeaderLine', ['If-None-Match'], $hash),
         ]);
 
-        if (null !== $contentType) {
-            /** @var ResponseInterface $response */
-            $response = $builder->create(ResponseInterface::class, [
-                new WithReturnSelf('withHeader', ['Content-Length', $contentLength]),
-                new WithReturnSelf('withHeader', ['Content-Type', $customContentType]),
-                new WithReturnSelf('withHeader', ['ETag', $hash]),
-            ]);
-        } else {
-            /** @var ResponseInterface $response */
-            $response = $builder->create(ResponseInterface::class, [
-                new WithReturnSelf('withHeader', ['Content-Length', $contentLength]),
-                new WithReturnSelf('withHeader', ['ETag', $hash]),
-            ]);
-        }
+        /** @var ResponseInterface $response */
+        $response = $builder->create(ResponseInterface::class, [
+            new WithReturnSelf('withHeader', ['Content-Length', $contentLength]),
+            new WithReturnSelf('withHeader', ['Content-Type', null !== $contentType ? $customContentType : 'application/octet-stream']),
+            new WithReturnSelf('withHeader', ['X-Content-Type-Options', 'nosniff']),
+            new WithReturnSelf('withHeader', ['ETag', $hash]),
+        ]);
 
         /** @var RequestHandlerInterface $handler */
         $handler = $builder->create(RequestHandlerInterface::class, []);
@@ -866,6 +832,7 @@ final class StaticFileMiddlewareTest extends TestCase
             $response = $builder->create(ResponseInterface::class, [
                 new WithReturnSelf('withHeader', ['Content-Length', (string) \strlen($body)]),
                 new WithReturnSelf('withHeader', ['Content-Type', 'application/json']),
+                new WithReturnSelf('withHeader', ['X-Content-Type-Options', 'nosniff']),
                 new WithReturnSelf('withHeader', ['ETag', $hash]),
             ]);
 

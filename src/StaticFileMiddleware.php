@@ -40,9 +40,17 @@ final class StaticFileMiddleware implements MiddlewareInterface
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
+        $filename = $this->resolveFilename($request);
+        $response = null !== $filename ? $this->createFileResponse($request, $filename) : null;
+
+        return $response ?? $handler->handle($request);
+    }
+
+    private function resolveFilename(ServerRequestInterface $request): ?string
+    {
         $publicDirectory = realpath($this->publicDirectory);
         if (false === $publicDirectory || !is_dir($publicDirectory)) {
-            return $handler->handle($request);
+            return null;
         }
 
         $requestTarget = $request->getRequestTarget();
@@ -52,32 +60,38 @@ final class StaticFileMiddleware implements MiddlewareInterface
         if (
             false === $filename
             || !str_starts_with($filename, rtrim($publicDirectory, \DIRECTORY_SEPARATOR).\DIRECTORY_SEPARATOR)
+            || !is_file($filename)
+            || !is_readable($filename)
         ) {
-            return $handler->handle($request);
+            return null;
         }
 
-        if (!is_file($filename) || !is_readable($filename)) {
-            return $handler->handle($request);
-        }
+        return $filename;
+    }
 
+    private function createFileResponse(ServerRequestInterface $request, string $filename): ?ResponseInterface
+    {
         $method = $request->getMethod();
         if (!\in_array($method, ['GET', 'HEAD'], true)) {
-            return $handler->handle($request);
+            return null;
         }
 
         $fileSize = @filesize($filename);
         $hash = @hash_file($this->hashAlgorithm, $filename);
 
         if (!\is_int($fileSize) || !\is_string($hash)) {
-            return $handler->handle($request);
+            return null;
         }
 
         $etag = '"'.$hash.'"';
 
-        if ($this->matchesIfNoneMatch($request->getHeaderLine('If-None-Match'), $etag)) {
-            return $this->createResponse(304, $filename, $fileSize, $etag);
-        }
+        return $this->matchesIfNoneMatch($request->getHeaderLine('If-None-Match'), $etag)
+            ? $this->createResponse(304, $filename, $fileSize, $etag)
+            : $this->createBodyResponse($method, $filename, $fileSize, $etag);
+    }
 
+    private function createBodyResponse(string $method, string $filename, int $fileSize, string $etag): ?ResponseInterface
+    {
         $response = $this->createResponse(200, $filename, $fileSize, $etag);
         if ('HEAD' === $method) {
             return $response;
@@ -86,7 +100,7 @@ final class StaticFileMiddleware implements MiddlewareInterface
         try {
             return $response->withBody($this->streamFactory->createStreamFromFile($filename));
         } catch (\RuntimeException) {
-            return $handler->handle($request);
+            return null;
         }
     }
 

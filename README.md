@@ -22,7 +22,13 @@
 
 ## Description
 
-A minimal static file middleware for PSR 15.
+A minimal [PSR-15](https://www.php-fig.org/psr/psr-15/) middleware that serves static files from a public directory.
+
+ * Serves only regular, readable files inside the public directory; path traversal and symlinks pointing outside are rejected.
+ * Handles `GET` and `HEAD` requests, any other method is passed to the next handler.
+ * Sends `Content-Type` (based on the file extension, `application/octet-stream` as fallback), `Content-Length`, `ETag` and `X-Content-Type-Options: nosniff`.
+ * Responds with `304 Not Modified` if the `If-None-Match` header matches the file's `ETag`.
+ * Passes the request to the next handler if no matching file exists.
 
 ## Requirements
 
@@ -41,6 +47,8 @@ composer require chubbyphp/chubbyphp-static-file "^1.4"
 ```
 
 ## Usage
+
+Register the middleware before the routing of your PSR-15 based framework, so that static files are served without hitting a route.
 
 ```php
 <?php
@@ -61,13 +69,28 @@ $streamFactory = ...;
 
 $app = ...;
 
-// add the static file middleware before the routing your PSR15 based framework
 $app->add(new StaticFileMiddleware(
     $responseFactory,
     $streamFactory,
     __DIR__ . '/public'
 ));
+```
 
+### Options
+
+The constructor accepts two optional arguments:
+
+ * `$hashAlgorithm` (default: `md5`): the algorithm used to calculate the `ETag`, must be supported by [hash_algos()](https://www.php.net/manual/en/function.hash-algos.php).
+ * `$mimetypes` (default: bundled list based on the [Apache mime.types](https://svn.apache.org/repos/asf/httpd/httpd/trunk/docs/conf/mime.types)): a map of file extension to mime type.
+
+```php
+$app->add(new StaticFileMiddleware(
+    $responseFactory,
+    $streamFactory,
+    __DIR__ . '/public',
+    'sha256',
+    ['css' => 'text/css', 'js' => 'text/javascript', 'png' => 'image/png']
+));
 ```
 
 ## Copyright

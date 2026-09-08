@@ -81,7 +81,7 @@ $app->add(new StaticFileMiddleware(
 The constructor accepts two optional arguments:
 
  * `$hashAlgorithm` (default: `md5`): the algorithm used to calculate the `ETag`, must be supported by [hash_algos()](https://www.php.net/manual/en/function.hash-algos.php).
- * `$mimetypes` (default: bundled list based on the [Apache mime.types](https://svn.apache.org/repos/asf/httpd/httpd/trunk/docs/conf/mime.types)): a map of file extension to mime type.
+ * `$mimetypes` (default: bundled list based on the [Apache mime.types](https://svn.apache.org/repos/asf/httpd/httpd/trunk/docs/conf/mime.types), regenerate with `php generate-mimetypes.php`): a map of file extension to mime type.
 
 ```php
 $app->add(new StaticFileMiddleware(
